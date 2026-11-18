@@ -21,7 +21,15 @@ from service.contract import RESPONSE, UNFILLABLE_FIELDS, errors
 from service.engine import FAST_COPIES, ApiErrorBreaker, StepEngine
 from service.postchecks import NOT_AVAILABLE_NOTE
 
-from .conftest import AUTH, FakeClient, needs_full_icd, assessment, completion, model_outputs, with_case
+from .conftest import (
+    AUTH,
+    FakeClient,
+    assessment,
+    completion,
+    model_outputs,
+    needs_full_icd,
+    with_case,
+)
 
 STEP = "/v1/diagnosis/step"
 

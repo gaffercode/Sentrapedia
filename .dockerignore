@@ -19,3 +19,5 @@ oracle-ii
 aadi/service/data/icd10.json
 .agents
 deploy/beta
+# The server keeps the private data inside the checkout (/opt/sentrapedia/data); it must not enter the build context either.
+/data
