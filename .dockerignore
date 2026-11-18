@@ -1,0 +1,21 @@
+node_modules
+.next
+.runtime
+.git
+.env*
+*.tsbuildinfo
+theoracle/model
+theoracle/data
+theoracle/library
+theoracle/_versions
+theoracle/_transactions
+_to_delete
+.lfs-assets-id
+# Private data never enters the build context or the image (2026-11-18); the server mounts it at /data.
+theoracle/index
+theoracle/ssot
+oracle/sentrapedia.json
+oracle-ii
+aadi/service/data/icd10.json
+.agents
+deploy/beta

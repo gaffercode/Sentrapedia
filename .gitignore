@@ -1,0 +1,40 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+coverage/
+.runtime/
+__pycache__/
+.pytest_cache/
+*.sqlite-wal
+*.sqlite-shm
+theoracle/model/
+# Generated from chunks.jsonl and fetched by npm run knowledge:install (Gaffer, 2026-10-25).
+theoracle/index/vectors.f32
+theoracle/index/vectors.partial.*
+_to_delete/
+# Local agent and verification output (also ignored by the monorepo root)
+verify-report/
+.superpowers/
+docs/superpowers/
+.claude/
+# Git LFS hooks generated on each machine (core.hooksPath is .husky/_)
+.husky/_/
+# Playwright MCP scratch output: timestamped console logs and throwaway flow scripts
+.playwright-mcp/
+.neon
+
+# --- TheOracle knowledge base: never published ---
+# The repository is public under a paid licence; the knowledge base is not part of it.
+# Only the manifest (model pin and checksums, no content) stays versioned.
+theoracle/index/*
+!theoracle/index/manifest.json
+theoracle/library/
+theoracle/ssot/
+oracle/sentrapedia.json
+oracle-ii/
+
+# Local archive of untracked leftovers (Gaffer, 2026-11-18)
+.archieved/

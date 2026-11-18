@@ -1,0 +1,60 @@
+{
+  "_metadata": {
+    "version": "sample",
+    "sample": true,
+    "description": "Sample list of 10 common WHO ICD-10 codes so the public code tree builds and its tests run. The ICD-10 list Sentrapedia uses is private data and is not included in the public repository.",
+    "total_records": 10
+  },
+  "icd10": [
+    {
+      "kode": "A09",
+      "nama_en": "Diarrhoea and gastroenteritis of presumed infectious origin",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "A90",
+      "nama_en": "Dengue fever [classical dengue]",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "A91",
+      "nama_en": "Dengue haemorrhagic fever",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "I10",
+      "nama_en": "Essential (primary) hypertension",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "J00",
+      "nama_en": "Acute nasopharyngitis [common cold]",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "J06.9",
+      "nama_en": "Acute upper respiratory infection, unspecified",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "J18.9",
+      "nama_en": "Pneumonia, unspecified",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "K29.7",
+      "nama_en": "Gastritis, unspecified",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "K35.8",
+      "nama_en": "Acute appendicitis, other and unspecified",
+      "version": "ICD10_2010"
+    },
+    {
+      "kode": "R50.9",
+      "nama_en": "Fever, unspecified",
+      "version": "ICD10_2010"
+    }
+  ]
+}

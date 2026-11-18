@@ -1,0 +1,348 @@
+{
+  "schemaVersion": "1.0",
+  "standard": "SRDS-L2",
+  "scope": "projects/healthcare/sentrapedia",
+  "profile": "full-product",
+  "reviewStatus": "Machine checks only. No independent human review has taken place; this manifest does not certify accuracy, clinical safety or production readiness.",
+  "categories": {
+    "identity": {
+      "state": "documented",
+      "document": "README.md",
+      "evidence": [
+        "package.json",
+        "src",
+        "aadi",
+        "apps/site"
+      ],
+      "rationale": "Existing product README retained; four stale statements (chunk count, storage key, clinical review status, sign-in) corrected on 2026-11-16 against code. Its 'synthetic only' wording was replaced with 'no patient identity' on 2026-11-16 on the owner's ruling; the 2026-10-10 verification table and a full truth pass are still owed."
+    },
+    "agent_guidance": {
+      "state": "documented",
+      "document": "AGENTS.md",
+      "evidence": [
+        ".agents/AGENT-CONTEXT.md",
+        "project.contract.json"
+      ],
+      "rationale": "Existing agent guide retained and extended with read order, sources of truth, authority and acceptance gates."
+    },
+    "architecture": {
+      "state": "documented",
+      "document": "docs/architecture.md",
+      "evidence": [
+        "scripts/run-system.mjs",
+        "src/app/api/aadi/route.ts",
+        "aadi/service",
+        "src/lib/theoracle-grounding.ts"
+      ],
+      "rationale": "Maintainer overview written 2026-11-15 with Read/Inferred/Not-looked-at labels; corrected 2026-11-16 for the data posture and the missing-index message."
+    },
+    "engineering": {
+      "state": "documented",
+      "document": "docs/engineering/DEVELOPMENT.md",
+      "evidence": [
+        "package.json",
+        ".env.example",
+        "config",
+        "scripts/run-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from package scripts, the example environment files (names only) and the install and run scripts; no command was executed while writing."
+    },
+    "security": {
+      "state": "documented",
+      "document": "docs/security/SECURITY.md",
+      "evidence": [
+        "src/lib/auth",
+        "src/proxy.ts",
+        "src/app/api",
+        "aadi/common/guard.py",
+        "scripts/private-data.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the auth, gateway, engine guard and sync code; lists observed weaknesses and unverified hosting-side settings. No security testing was performed."
+    },
+    "operations": {
+      "state": "documented",
+      "document": "docs/operations/RUNBOOK.md",
+      "evidence": [
+        "scripts/run-system.mjs",
+        "scripts/beta-access.mjs",
+        "deploy/beta",
+        "scripts/export-split.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the supervisor, operator and deploy scripts; the live beta server was not inspected."
+    },
+    "governance": {
+      "state": "documented",
+      "document": "docs/governance/BOUNDARIES.md",
+      "evidence": [
+        "AGENTS.md",
+        "project.contract.json",
+        "LICENSE",
+        ".agents/HANDOFF.md"
+      ],
+      "rationale": "Created 2026-11-16 from the capsule's agent rules, contract, licence and audit-trail files; the monorepo policy files were not read."
+    },
+    "api_integrations": {
+      "state": "documented",
+      "document": "docs/integrations/INTEGRATIONS.md",
+      "evidence": [
+        "src/app/api",
+        "docs/aadi-integration.md",
+        "scripts/theoracle-index.mjs",
+        "neon.ts"
+      ],
+      "rationale": "Created 2026-11-16: internal HTTP routes, engine contract, Gemini, Clerk, Neon, Hugging Face, the GitHub index release, GHCR and Resend, read from handlers and scripts."
+    },
+    "data_persistence": {
+      "state": "documented",
+      "document": "docs/data.md",
+      "evidence": [
+        "src/lib/workspace-storage.ts",
+        "theoracle/index/manifest.json",
+        "scripts/build-theoracle-chunks.mjs",
+        "db"
+      ],
+      "rationale": "Existing data document retained; corrected 2026-11-15/16 for the library source, storage keys, the optional Neon sync, the private path list and the missing-index message."
+    },
+    "deployment": {
+      "state": "documented",
+      "document": "docs/operations/DEPLOYMENT.md",
+      "evidence": [
+        "Dockerfile",
+        ".github/workflows/ci.yml",
+        "deploy/beta/update.sh",
+        "scripts/build-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the Dockerfile, CI workflow and beta deploy scripts; lists what the owner must still re-point after the repository move."
+    },
+    "observability": {
+      "state": "documented",
+      "document": "docs/operations/OBSERVABILITY.md",
+      "evidence": [
+        "aadi/service/app.py",
+        "src/app/api/aadi/route.ts",
+        "scripts/run-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the audit ledger, health route and supervisor logging code; states that no metrics or alerts exist in the repository and that hosting logs were not seen."
+    },
+    "architecture_decisions": {
+      "state": "documented",
+      "document": "docs/architecture/DECISIONS.md",
+      "evidence": [
+        ".agents/DECISIONS.md",
+        ".agents/AGENT-CONTEXT.md"
+      ],
+      "rationale": "Created 2026-11-16 as an inventory of the dated owner decisions in the private decision log; nothing invented, overridden entries are marked."
+    },
+    "collaboration": {
+      "state": "not_applicable",
+      "rationale": "No CONTRIBUTING file, issue templates or CODEOWNERS exist; the repository is private with a single owner and LICENSE grants no contribution process. Checked the capsule root and .github on 2026-11-16."
+    },
+    "release_history": {
+      "state": "not_applicable",
+      "rationale": "package.json stays at 0.1.0 with no version tags or CHANGELOG; images are identified by commit SHA and the only release (theoracle-index) holds index artefacts, not product versions. Checked 2026-11-16."
+    },
+    "regulatory_safety": {
+      "state": "documented",
+      "document": "docs/security/REGULATORY_SAFETY.md",
+      "evidence": [
+        "LICENSE",
+        "theoracle/ssot",
+        "src/lib/aadi",
+        "src/components/aadi-case-form.tsx"
+      ],
+      "rationale": "Created 2026-11-16: decision-support boundary, evidence gate, clinical review record and the regulatory claims not made. No clinical validation exists and none is claimed."
+    }
+  },
+  "deliverables": {
+    "product_identity": {
+      "state": "documented",
+      "document": "README.md",
+      "evidence": [
+        "package.json",
+        "src",
+        "aadi",
+        "apps/site"
+      ],
+      "rationale": "Existing product README retained; four stale statements (chunk count, storage key, clinical review status, sign-in) corrected on 2026-11-16 against code. Its 'synthetic only' wording was replaced with 'no patient identity' on 2026-11-16 on the owner's ruling; the 2026-10-10 verification table and a full truth pass are still owed."
+    },
+    "agent_instructions": {
+      "state": "documented",
+      "document": "AGENTS.md",
+      "evidence": [
+        ".agents/AGENT-CONTEXT.md",
+        "project.contract.json"
+      ],
+      "rationale": "Existing agent guide retained and extended with read order, sources of truth, authority and acceptance gates."
+    },
+    "product_scope": {
+      "state": "documented",
+      "document": "docs/product/PRODUCT_SCOPE.md",
+      "evidence": [
+        "src/components",
+        "src/lib/aadi",
+        "src/app",
+        "apps/site"
+      ],
+      "rationale": "Created 2026-11-16 from a read-only review of the workspace, engine gateway, catalogue and site code; conflicts between records are listed, not resolved."
+    },
+    "system_architecture": {
+      "state": "documented",
+      "document": "docs/architecture.md",
+      "evidence": [
+        "scripts/run-system.mjs",
+        "src/app/api/aadi/route.ts",
+        "aadi/service",
+        "src/lib/theoracle-grounding.ts"
+      ],
+      "rationale": "Maintainer overview written 2026-11-15 with Read/Inferred/Not-looked-at labels; corrected 2026-11-16 for the data posture and the missing-index message."
+    },
+    "architecture_decisions": {
+      "state": "documented",
+      "document": "docs/architecture/DECISIONS.md",
+      "evidence": [
+        ".agents/DECISIONS.md",
+        ".agents/AGENT-CONTEXT.md"
+      ],
+      "rationale": "Created 2026-11-16 as an inventory of the dated owner decisions in the private decision log; nothing invented, overridden entries are marked."
+    },
+    "developer_setup": {
+      "state": "documented",
+      "document": "docs/engineering/DEVELOPMENT.md",
+      "evidence": [
+        "package.json",
+        ".env.example",
+        "config",
+        "scripts/run-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from package scripts, the example environment files (names only) and the install and run scripts; no command was executed while writing."
+    },
+    "testing_strategy": {
+      "state": "documented",
+      "document": "docs/testing.md",
+      "evidence": [
+        "tests",
+        "vitest.config.ts",
+        "scripts/test-aadi.mjs",
+        "apps/site/docs/testing.md"
+      ],
+      "rationale": "Existing note rewritten 2026-11-16 into a taxonomy and per-file inventory read from the test files; gaps are listed."
+    },
+    "verification_evidence": {
+      "state": "documented",
+      "document": "docs/engineering/VERIFICATION.md",
+      "evidence": [
+        ".github/workflows/ci.yml",
+        "project.contract.json",
+        "docs/verification"
+      ],
+      "rationale": "Created 2026-11-16; records only results observed on 2026-11-15/16 (touched-file lint, typecheck, two node test files, index hash, CI check pass and docker failure on the new repository) and marks the rest NOT RUN."
+    },
+    "security_boundaries": {
+      "state": "documented",
+      "document": "docs/security/SECURITY.md",
+      "evidence": [
+        "src/lib/auth",
+        "src/proxy.ts",
+        "src/app/api",
+        "aadi/common/guard.py",
+        "scripts/private-data.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the auth, gateway, engine guard and sync code; lists observed weaknesses and unverified hosting-side settings. No security testing was performed."
+    },
+    "operations_runbook": {
+      "state": "documented",
+      "document": "docs/operations/RUNBOOK.md",
+      "evidence": [
+        "scripts/run-system.mjs",
+        "scripts/beta-access.mjs",
+        "deploy/beta",
+        "scripts/export-split.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the supervisor, operator and deploy scripts; the live beta server was not inspected."
+    },
+    "troubleshooting": {
+      "state": "documented",
+      "document": "docs/operations/TROUBLESHOOTING.md",
+      "evidence": [
+        "scripts",
+        "src/app/api",
+        "src/lib/theoracle-grounding.ts",
+        "aadi/service"
+      ],
+      "rationale": "Created 2026-11-16 from failure messages found in the code; remedies were read from the scripts, not exercised."
+    },
+    "governance_boundaries": {
+      "state": "documented",
+      "document": "docs/governance/BOUNDARIES.md",
+      "evidence": [
+        "AGENTS.md",
+        "project.contract.json",
+        "LICENSE",
+        ".agents/HANDOFF.md"
+      ],
+      "rationale": "Created 2026-11-16 from the capsule's agent rules, contract, licence and audit-trail files; the monorepo policy files were not read."
+    },
+    "api_integrations": {
+      "state": "documented",
+      "document": "docs/integrations/INTEGRATIONS.md",
+      "evidence": [
+        "src/app/api",
+        "docs/aadi-integration.md",
+        "scripts/theoracle-index.mjs",
+        "neon.ts"
+      ],
+      "rationale": "Created 2026-11-16: internal HTTP routes, engine contract, Gemini, Clerk, Neon, Hugging Face, the GitHub index release, GHCR and Resend, read from handlers and scripts."
+    },
+    "data_model": {
+      "state": "documented",
+      "document": "docs/data.md",
+      "evidence": [
+        "src/lib/workspace-storage.ts",
+        "theoracle/index/manifest.json",
+        "scripts/build-theoracle-chunks.mjs",
+        "db"
+      ],
+      "rationale": "Existing data document retained; corrected 2026-11-15/16 for the library source, storage keys, the optional Neon sync, the private path list and the missing-index message."
+    },
+    "deployment_release": {
+      "state": "documented",
+      "document": "docs/operations/DEPLOYMENT.md",
+      "evidence": [
+        "Dockerfile",
+        ".github/workflows/ci.yml",
+        "deploy/beta/update.sh",
+        "scripts/build-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the Dockerfile, CI workflow and beta deploy scripts; lists what the owner must still re-point after the repository move."
+    },
+    "observability": {
+      "state": "documented",
+      "document": "docs/operations/OBSERVABILITY.md",
+      "evidence": [
+        "aadi/service/app.py",
+        "src/app/api/aadi/route.ts",
+        "scripts/run-system.mjs"
+      ],
+      "rationale": "Created 2026-11-16 from the audit ledger, health route and supervisor logging code; states that no metrics or alerts exist in the repository and that hosting logs were not seen."
+    },
+    "regulatory_safety": {
+      "state": "documented",
+      "document": "docs/security/REGULATORY_SAFETY.md",
+      "evidence": [
+        "LICENSE",
+        "theoracle/ssot",
+        "src/lib/aadi",
+        "src/components/aadi-case-form.tsx"
+      ],
+      "rationale": "Created 2026-11-16: decision-support boundary, evidence gate, clinical review record and the regulatory claims not made. No clinical validation exists and none is claimed."
+    },
+    "collaboration": {
+      "state": "not_applicable",
+      "rationale": "No CONTRIBUTING file, issue templates or CODEOWNERS exist; the repository is private with a single owner and LICENSE grants no contribution process. Checked the capsule root and .github on 2026-11-16."
+    },
+    "release_history": {
+      "state": "not_applicable",
+      "rationale": "package.json stays at 0.1.0 with no version tags or CHANGELOG; images are identified by commit SHA and the only release (theoracle-index) holds index artefacts, not product versions. Checked 2026-11-16."
+    }
+  }
+}
