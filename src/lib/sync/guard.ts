@@ -1,6 +1,6 @@
 import { containsIdentity } from "../aadi/contract";
 import type { Encounter, Message } from "../workspace";
-import type { ReviewItem, WorkStatus, WorkTask } from "../workflow";
+import type { PersonalTemplate, ReviewItem, WorkStatus, WorkTask } from "../workflow";
 
 // Step S2 of docs/plans/active/2026-10-25-e2e-integration.md. This is a guard, not a redactor, by the same rule
 // that governs retrieval: src/lib/theoracle-grounding.ts skips a matching passage rather than rewriting it, and
@@ -51,4 +51,12 @@ export function projectEncounterForSync(encounter: Encounter): SyncProjection {
   if (encounter.workStatus) body.workStatus = encounter.workStatus;
   if (tasks.length) body.tasks = tasks;
   return { ok: true, docId: encounter.id, body };
+}
+
+// Personal templates (docs/FEATURE-IDEAS.md idea 6) sync by the same rule: every free-text field is scanned and a template
+// carrying identity is held back whole. Allowlist, never a spread, as for messages.
+export type TemplateProjection = { ok: true; id: string; body: PersonalTemplate } | { ok: false; reason: "identity" };
+export function projectTemplateForSync(template: PersonalTemplate): TemplateProjection {
+  if (held(template.name, template.instructions, ...template.sections)) return { ok: false, reason: "identity" };
+  return { ok: true, id: template.id, body: { id: template.id, name: template.name, mode: template.mode, sections: [...template.sections], instructions: template.instructions } };
 }

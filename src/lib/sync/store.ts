@@ -1,7 +1,8 @@
 import "server-only";
 import { withPrincipal } from "./db";
 import { syncFormatVersion, type SyncPushResult, type SyncedDocument } from "./contract";
-import { projectEncounterForSync, type SyncEncounterBody } from "./guard";
+import { projectEncounterForSync, projectTemplateForSync, type SyncEncounterBody } from "./guard";
+import type { PersonalTemplate } from "../workflow";
 import type { Encounter } from "../workspace";
 
 // Only the format this build understands is written, and only the same is read back, so a reader always
@@ -44,4 +45,28 @@ export async function pullEncounters(principal: string): Promise<SyncedDocument[
     );
     return rows.map(row => ({ docId: row.doc_id, formatVersion: row.format_version, patientRef: row.patient_ref, body: row.body, updatedAt: row.updated_at.toISOString() }));
   });
+}
+
+// Personal templates (docs/FEATURE-IDEAS.md idea 6) on personal_template from db/migrations/0001, which had no writer
+// until 2026-11-19. Same guard rule as documents: a template carrying identity is held, the rest are upserted.
+export async function pushTemplates(principal: string, templates: PersonalTemplate[]): Promise<{ saved: string[]; held: string[] }> {
+  const projections = templates.map(template => ({ template, projection: projectTemplateForSync(template) }));
+  const held = projections.filter(item => !item.projection.ok).map(item => item.template.id);
+  const sendable = projections.flatMap(item => (item.projection.ok ? [item.projection] : []));
+  if (!sendable.length) return { saved: [], held };
+  await withPrincipal(principal, async client => {
+    await client.query("insert into profile (user_id, updated_at) values ($1, now()) on conflict (user_id) do nothing", [principal]);
+    for (const projection of sendable) {
+      await client.query(
+        `insert into personal_template (user_id, template_id, body, updated_at) values ($1, $2, $3::jsonb, now())
+         on conflict (user_id, template_id) do update set body = excluded.body, updated_at = now()`,
+        [principal, projection.id, JSON.stringify(projection.body)],
+      );
+    }
+  });
+  return { saved: sendable.map(projection => projection.id), held };
+}
+
+export async function pullTemplates(principal: string): Promise<unknown[]> {
+  return withPrincipal(principal, async client => (await client.query<{ body: unknown }>("select body from personal_template order by updated_at desc")).rows.map(row => row.body));
 }

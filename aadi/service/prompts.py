@@ -28,7 +28,9 @@ def case_text(case: dict) -> str:
     sex = {"M": "male", "F": "female"}.get(demo["sex"], "unknown")
     lines = [
         f"Age: {demo['ageYears'] if demo['ageYears'] is not None else 'unknown'} years; sex: {sex}"
-        + ("" if "pregnant" not in demo else f"; pregnant: {'yes' if demo['pregnant'] else 'no'}"),
+        + ("" if "pregnant" not in demo else f"; pregnant: {'yes' if demo['pregnant'] else 'no'}")
+        # Input only (docs/FEATURE-IDEAS.md idea 5; Gaffer: the model may see it, 2026-11-19); absent, the line reads as before.
+        + ("" if "weightKg" not in demo else f"; weight: {demo['weightKg']:g} kg"),
         f"Chief complaint: {case['chiefComplaint'] or '(not recorded)'}",
     ]
     anamnesis = case["anamnesis"]

@@ -17,6 +17,8 @@ export interface CaseState {
     ageYears: number | null;
     sex: 'M' | 'F' | 'unknown';
     pregnant?: boolean;
+    /** Kilograms; input only, never used to compute a dose (docs/FEATURE-IDEAS.md idea 5). */
+    weightKg?: number;
   };
   chiefComplaint: string;
   anamnesis: {

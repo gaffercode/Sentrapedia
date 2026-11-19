@@ -9,6 +9,7 @@ import { THEORACLE_GROUNDING_CAPABILITY, type TheOracleGroundingBundle } from ".
 import { initialWorkspace, workspaceReducer, loadWorkspace } from "../src/lib/workspace";
 import { gateTherapy } from "../src/lib/theoracle-evidence-gate";
 import { withCatalog } from "./private-data";
+import { addCatalogueRecords } from "../src/lib/theoracle";
 
 const theOracleDiseases = loadCatalogue().diseases;
 const withCode = (code: string) => theOracleDiseases.filter(d => d.kode.trim().toUpperCase() === code);
@@ -553,6 +554,8 @@ describe("therapy line", () => {
     expect(regimenLine({ drug: "amoxicillin", dose: "3x500mg", route: "PO", duration: "5 hari", note: "" })).toBe("Amoxicillin 500 mg, diminum tiga kali sehari selama 5 hari");
     expect(regimenLine({ drug: "dihidroartemisinin 40 mg + piperakuin 320 mg", dose: "4 tablet sekali sehari", route: "PO", duration: "3 hari", note: "dosis untuk berat badan >60kg" })).toBe("Dihidroartemisinin 40 mg + piperakuin 320 mg, 4 tablet sekali sehari selama 3 hari (dosis untuk berat badan >60kg)");
     expect(regimenLine({ drug: "primakuin", dose: "", route: "PO", duration: "dosis tunggal", note: "" })).toBe("Primakuin, dosis: cek pedoman, dosis tunggal");
+    // A removed dose takes its note with it: a weight adjustment such as "15 mg/kg = 187,5 mg" is a dose the gate did not verify.
+    expect(regimenLine({ drug: "parasetamol", dose: "", route: "PO", duration: "bila demam", note: "15 mg/kg = 187,5 mg untuk 12,5 kg" })).toBe("Parasetamol, dosis: cek pedoman, bila demam");
     expect(regimenLine({ drug: "ceftriaxone", dose: "2x1g", route: "IV", duration: "5 hari", note: "" }, false)).toBe("Ceftriaxone 1 g, dua kali sehari, IV selama 5 hari");
   });
 });
@@ -572,5 +575,30 @@ describe("doctorSummary", () => {
     expect(lines.map(line => line.split(":")[0])).toEqual(["Perlu disaring segera", "Diagnosis kerja (kandidat)", "Periksa", "Terapi usulan", "Rujuk"]);
     expect(lines.join("\n")).not.toMatch(/\*\*/);
     expect(doctorSummary("# Catatan\n\n## S\nx")).toEqual([]);
+  });
+});
+
+describe("SKDI level beside AADI's disposition", () => {
+  // A synthetic record with its own code, so no real catalogue entry is involved.
+  addCatalogueRecords([
+    { id: 990001, nama: "Penyakit sintetis SKDI", kode: "U98", kategori: "Contoh", definisi: "", gejala: [], diagnosis: "", terapi: "", rujukan: "", skdi: "4A" },
+    { id: 990002, nama: "Penyakit sintetis tanpa level", kode: "U97", kategori: "Contoh", definisi: "", gejala: [], diagnosis: "", terapi: "", rujukan: "", skdi: null },
+  ]);
+  const likely = [{ icd10: "U98", label: "Penyakit sintetis SKDI", confidenceTier: "low" as const }];
+  const skdi = "**Kompetensi SKDI (katalog):** Penyakit sintetis SKDI (U98) — SKDI 4A";
+  it("shows both when they disagree, and rewrites neither", () => {
+    const refer = { ...withDifferential({ likely, alternatives: [], cannotMiss: [] }), result: { ...withDifferential({ likely, alternatives: [], cannotMiss: [] }).result, disposition: { decision: "refer" as const, urgency: "urgent" as const } } };
+    const content = aadiMessage(refer).content;
+    expect(section(content, "2. Skrining kegawatan")).toContain("**Saran disposisi AADI:** Rujuk · segera");
+    expect(section(content, "2. Skrining kegawatan")).toContain(skdi);
+    // "Draft Rujukan" goes to the receiving facility; a level there could read as a reason to refuse the referral,
+    // so the letter leaves it out and the clinician still sees it in part 2 of the same draft.
+    const referDraft = aadiDraft(refer.result, refer.traceId, refer.createdAt, refer.case, "refer");
+    expect(section(referDraft, referralSectionTitle)).not.toContain("Kompetensi SKDI");
+    expect(section(referDraft, "2. Skrining kegawatan")).toContain(skdi);
+  });
+  it("adds nothing when the primary record has no level", () => {
+    const none = withDifferential({ likely: [{ icd10: "U97", label: "Penyakit sintetis tanpa level", confidenceTier: "low" }], alternatives: [], cannotMiss: [] });
+    expect(section(aadiMessage(none).content, "2. Skrining kegawatan")).not.toContain("Kompetensi SKDI");
   });
 });

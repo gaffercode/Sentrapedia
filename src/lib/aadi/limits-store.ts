@@ -25,6 +25,8 @@ export const limitsSql = {
            returning spent_usd`,
   // Matches once a day: the first settle that finds spend at or over the alert line.
   alert: "update analysis_budget_day set alerted_at = now() where day = $1 and alerted_at is null and spent_usd >= $2 returning day",
+  // The account menu's count; row-level security already limits it to the principal's own rows.
+  used: "select analyses from analysis_usage where user_id = $1 and day = $2",
 } as const;
 
 export function createPostgresLimitsStore(): LimitsStore {
@@ -51,6 +53,9 @@ export function createPostgresLimitsStore(): LimitsStore {
         // numeric arrives as text from node-postgres.
         return { alert, spentUsd: Number(charged.rows[0]?.spent_usd ?? 0) };
       });
+    },
+    async used(principal, day) {
+      return withPrincipal(principal, async client => Number((await client.query<{ analyses: number }>(limitsSql.used, [principal, day])).rows[0]?.analyses ?? 0));
     },
   };
 }

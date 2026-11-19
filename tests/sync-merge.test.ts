@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergePulledDocuments } from "../src/lib/sync/merge";
+import { mergePulledDocuments, mergePulledTemplates } from "../src/lib/sync/merge";
 import { initialWorkspace, type Encounter, type Workspace } from "../src/lib/workspace";
 import type { SyncedDocument } from "../src/lib/sync/contract";
 
@@ -63,5 +63,30 @@ describe("merge pulled documents", () => {
     expect(added.workStatus).toBe("review");
     expect(added.tasks).toEqual([{ id: "t1", text: "Kontrol tujuh hari", done: false }]);
     expect(added.updatedAt).toBe("2026-10-25T02:00:00.000Z");
+  });
+});
+
+describe("merge pulled templates", () => {
+  const template = (id: string, name = "Dari server") => ({ id, name, mode: "clinic" as const, sections: ["Keluhan"], instructions: "" });
+  it("adds templates the browser does not have", () => {
+    const result = mergePulledTemplates(local([]), [template("t1")]);
+    expect(result.added).toEqual(["t1"]);
+    expect(result.workspace.templates?.map(t => t.id)).toEqual(["t1"]);
+  });
+  it("keeps the browser's copy of a known template", () => {
+    const before = { ...local([]), templates: [template("t1", "Lokal")] };
+    const result = mergePulledTemplates(before, [template("t1", "Dari server")]);
+    expect(result.added).toEqual([]);
+    expect(result.workspace).toBe(before);
+  });
+  it("drops invalid bodies and never grows past 50 templates", () => {
+    const before = { ...local([]), templates: Array.from({ length: 49 }, (_, i) => template(`l${i}`)) };
+    const result = mergePulledTemplates(before, [{ id: "bad" }, template("t1"), template("t2")]);
+    expect(result.added).toEqual(["t1"]);
+    expect(result.workspace.templates).toHaveLength(50);
+  });
+  it("returns the same workspace when nothing is added", () => {
+    const before = local([]);
+    expect(mergePulledTemplates(before, []).workspace).toBe(before);
   });
 });

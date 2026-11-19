@@ -31,6 +31,7 @@ import { useMediaQuery, useToast, useWorkspacePersistence } from "./workspace-ho
 import { ChatComposer, Conversation, HomeFooter, HomeView, WorkspaceHeader } from "./workspace-views";
 import { WorkspaceDialogs } from "./workspace-forms";
 import { workspaceStorageKeys } from "../lib/workspace-storage";
+import { printDocument } from "../lib/print";
 
 const visitKey = "sentrapedia-visit";
 const noSubscription = () => () => {};
@@ -185,7 +186,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const paneTools: PaneTools = {
     onCopy: async (m) => { try { await navigator.clipboard.writeText(output(m)); notify("Dokumen disalin."); } catch { notify("Clipboard tidak tersedia. Gunakan Edit untuk memilih dan menyalin teks.", "error"); } },
     onDownload: (m) => downloadText(output(m), downloadName(encounter?.title ?? "dokumen", m.createdAt)),
-    onPrint: () => window.print(),
+    onPrint: (m) => printDocument(document.getElementById("pane-body"), m.reviewStatus),
     pcare: (m) => pcareCopies(m, output(m)),
   };
   const overviewActions = {

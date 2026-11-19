@@ -78,10 +78,10 @@ describe("account menu", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
   it("omits Keluar without a sign-out handler, shows usage when given, and hosts its children", () => {
-    render(<AccountMenu name="dr. Rani" plan="Lite" usage={{ stepsToday: 3, budgetUsd: 2 }} onOpen={noop}><span data-testid="slot"/></AccountMenu>);
+    render(<AccountMenu name="dr. Rani" plan="Lite" usage={{ used: 3, quota: 10 }} onOpen={noop}><span data-testid="slot"/></AccountMenu>);
     fireEvent.click(screen.getByRole("button", { name: /dr\. Rani/ }));
     expect(screen.queryByRole("menuitem", { name: "Keluar" })).toBeNull();
-    expect(screen.getByRole("menu").textContent).toContain("3 langkah");
+    expect(screen.getByRole("menu").textContent).toContain("3 dari 10 analisis");
     expect(screen.getByTestId("slot")).toBeTruthy();
   });
   it("moves focus into the menu and walks it with the arrow, Home and End keys", () => {
@@ -117,5 +117,60 @@ describe("account menu", () => {
     fireEvent.click(trigger);
     fireEvent.pointerDown(screen.getByRole("button", { name: "luar" }));
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+});
+
+describe("today's quota in the account menu", () => {
+  const open = (usage?: { used: number; quota: number }) => {
+    render(<AccountMenu name="dr. Rani" plan="Lite" usage={usage} onOpen={noop}/>);
+    fireEvent.click(screen.getByRole("button", { name: /dr\. Rani/ }));
+  };
+  it("shows the count and what is left", () => {
+    open({ used: 2, quota: 5 });
+    expect(screen.getByText("Hari ini 2 dari 5 analisis · sisa 3")).toBeTruthy();
+  });
+  it("says when the quota is used up", () => {
+    open({ used: 5, quota: 5 });
+    expect(screen.getByText("Kuota analisis hari ini habis · kembali pukul 07.00 WIB")).toBeTruthy();
+  });
+  it("shows no usage line without a count", () => {
+    open();
+    expect(document.querySelector(".account-menu-usage")).toBeNull();
+  });
+});
+
+describe("sidebar feedback", () => {
+  const send = async (status: number, body: unknown, note = "Tombol cetak membantu.") => {
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify(body), { status }));
+    vi.stubGlobal("fetch", fetchMock);
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    const onToast = vi.fn();
+    render(<Sidebar state={initialWorkspace} open mobile={false} onToggle={noop} onDialog={noop} onNew={noop} onSelect={noop} onToast={onToast}/>);
+    const box = screen.getByRole("textbox", { name: "Masukan" }) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: note } });
+    fireEvent.click(screen.getByRole("button", { name: "Kirim masukan" }));
+    await vi.waitFor(() => expect(onToast).toHaveBeenCalled());
+    const result = { fetchMock, onToast, box, setItem: setItem.mock.calls.filter(([key]) => key === "sentrapedia-feedback") };
+    vi.unstubAllGlobals();
+    setItem.mockRestore();
+    return result;
+  };
+  it("posts the note and empties the box once it is kept", async () => {
+    const { fetchMock, onToast, box, setItem } = await send(200, { status: "ok" });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/feedback");
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ note: "Tombol cetak membantu." });
+    expect(onToast).toHaveBeenCalledWith("Masukan terkirim. Terima kasih.");
+    expect(box.value).toBe("");
+    expect(setItem).toEqual([]);
+  });
+  it("says plainly when the instance cannot keep it, and keeps the text", async () => {
+    const { onToast, box } = await send(503, { status: "error", error: { code: "FEEDBACK_UNAVAILABLE" } });
+    expect(onToast).toHaveBeenCalledWith("Masukan belum terkirim: penyimpanan belum aktif di instance ini.", "error");
+    expect(box.value).toBe("Tombol cetak membantu.");
+  });
+  it("asks to remove identity, and keeps the text", async () => {
+    const { onToast, box } = await send(400, { status: "error", error: { code: "IDENTITY" } }, "pasien Tn. Budi");
+    expect(onToast).toHaveBeenCalledWith("Masukan memuat pola identitas. Hapus nama, nomor identitas, kontak dan alamat.", "error");
+    expect(box.value).toBe("pasien Tn. Budi");
   });
 });

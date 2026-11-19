@@ -1,7 +1,7 @@
 // Derives the Pustaka Klinis catalogue (oracle/sentrapedia.json, the shape src/lib/theoracle.ts reads) from the SSOT
 // and writes the catalogue's SHA-256 into theOracleSource in src/lib/theoracle.ts. Usage: node scripts/build-oracle-catalog.mjs
 import { readFileSync, writeFileSync } from "node:fs";
-import { chapter, clean, doseLines, list, sha256, ssot, ssotBytes, ssotPath, therapyText } from "./knowledge-ssot.mjs";
+import { chapter, clean, doseLines, list, sha256, skdiLevel, ssot, ssotBytes, ssotPath, therapyText } from "./knowledge-ssot.mjs";
 import { root } from "./theoracle-model.mjs";
 
 // An entry without a category takes the ICD-10 chapter of its first code; guideline topics are not diseases.
@@ -12,7 +12,7 @@ const codes = entry => [...new Set([...entry.icd10, ...(entry.icd10_sumber_lama 
 const diseases = ssot.penyakit.filter(entry => entry.jenis !== "topik pedoman").map(entry => ({
   id: Number(entry.id.replace(/\D/g, "")), nama: entry.nama, kategori: entry.kategori ?? chapter(entry.icd10[0]) ?? UNCATEGORISED, kode: codes(entry).join(", "),
   definisi: clean(entry.definisi), gejala: list(entry.gejala), diagnosis: clean(entry.diagnosis),
-  terapi: [therapyText(entry), entry.dosis.length ? `Dosis:\n${doseLines(entry).join("\n")}` : ""].filter(Boolean).join("\n\n"), rujukan: clean(entry.rujukan),
+  terapi: [therapyText(entry), entry.dosis.length ? `Dosis:\n${doseLines(entry).join("\n")}` : ""].filter(Boolean).join("\n\n"), rujukan: clean(entry.rujukan), skdi: skdiLevel(entry.kompetensi),
 }));
 const categories = [...new Set(diseases.map(d => d.kategori))].sort((a, b) => a.localeCompare(b, "id")).map(name => ({ id: name, name, kode: "", desc: "" }));
 const catalog = {

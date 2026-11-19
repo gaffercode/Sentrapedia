@@ -93,3 +93,10 @@ describe.skipIf(!url)("analysis limits on Postgres", () => {
     } finally { await bare.end(); }
   });
 });
+
+describe("daily usage read", () => {
+  it("reads only the person's own row for the day", async () => {
+    const { limitsSql } = await import("../src/lib/aadi/limits-store");
+    expect(limitsSql.used.replace(/\s+/g, " ").trim()).toBe("select analyses from analysis_usage where user_id = $1 and day = $2");
+  });
+});

@@ -2,7 +2,7 @@
 
 Schemas, types.ts and validate-json.ts copied from Med Assist lib/diagnosis-engine on 2026-10-09 with Gaffer's integrate-both authorization. These are capsule-local snapshots, not runtime imports. Med Assist owns its originals; this integration does not modify them. Schema IDs retain their original contract identity.
 
-request.schema.json SHA-256: 9f4b3b79004249e814a14472b81410dd9c2600e89901e417aaf2fd89ecdf76f7
+request.schema.json SHA-256: d501942a4d9f1492e5f07225f7e81b0111e9f798b92c703c2b030cc3f16a7a70
 response.schema.json SHA-256: e70b16bfba157b07d57afb0ee7489131fd4b8788ac5879539501fc30704a37ec (Med Assist original 6bb903b9…bde4 plus the optional `therapy` block added 2026-10-09 for Sentrapedia; identical to the AADI service copy except the top-level description)
 
 On 2026-10-17 both top-level descriptions here were rewritten to name the Sentrapedia gateway and files instead of Med Assist (tech-debt row 22); the copies under `aadi/service/contract/` keep the vendored text. On 2026-10-20 MIRA was renamed AADI in titles and descriptions on both sides, and the 2026-10-20 report fields were added; the `$id` values keep the upstream contract identity.
