@@ -28,6 +28,7 @@ import { composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, 
 import { requestAadiAnalysis } from "../lib/aadi/client";
 import { smooth } from "./smooth";
 import { useMediaQuery, useToast, useWorkspacePersistence } from "./workspace-hooks";
+import { WorkspaceUnlock } from "./workspace-unlock";
 import { ChatComposer, Conversation, HomeFooter, HomeView, WorkspaceHeader } from "./workspace-views";
 import { WorkspaceDialogs } from "./workspace-forms";
 import { workspaceStorageKeys } from "../lib/workspace-storage";
@@ -74,7 +75,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const pendingText = useRef<string | null>(null);
   const analysisController = useRef<AbortController | null>(null);
   const { toast, toastError, notify, dismiss: dismissToast } = useToast();
-  const { storageError, unreadable, setUnreadable, restoring, allowSave } = useWorkspacePersistence(state, dispatch, notify, storageKeys);
+  const { storageError, unreadable, setUnreadable, restoring, allowSave, locked, unlock, forget, encryption } = useWorkspacePersistence(state, dispatch, notify, storageKeys);
   const encounter = state.encounters.find((e) => e.id === state.activeEncounterId);
   const patient = state.patients.find((p) => p.id === encounter?.patientId);
   const hasMessages = Boolean(encounter?.messages.length) || pendingQuestion !== null;
@@ -200,6 +201,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft };
 
   if (restoring) return <main className="system-loading" aria-busy="true"><PixelLoader label="Sedang membuka workspace…"/><p>Membuka workspace…</p></main>;
+  if (locked) return <WorkspaceUnlock onUnlock={unlock} onForget={forget}/>;
 
   return <div className={`app-shell ${sidebarOpen ? "" : "sidebar-collapsed"} ${focusMode ? "focus-mode" : ""}`}>
     {dialog === "knowledge" && <KnowledgeDialog initialTab={dialogId} onClose={closeDialog} onSave={saveAadiAnalysis}/>}
@@ -231,7 +233,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     {dialog === "commands" && <CommandPalette onKnowledge={(tab) => openDialog("knowledge", tab)} onQueue={() => openDialog("queue")} onTemplates={() => openDialog("templates")} state={state} onClose={closeDialog} onEncounter={selectEncounter} onPatient={(id) => openDialog("patient", id)} onMode={(next) => { changeMode(next); closeDialog(); requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.composer textarea')?.focus()); }} onNew={() => { startNew(); closeDialog(); }} onFocus={() => smooth(() => { setFocusMode((value) => !value); setMobileNavOpen(false); hideDialog(); })} onContext={() => openDialog("context")}/>}
     {toast && <div className={`toast ${toastError ? "is-error" : ""}`} role={toastError ? "alert" : "status"}>{toastError ? <CircleAlert size={15}/> : <Check size={15}/>}<span>{toast}</span><button aria-label="Tutup notifikasi" onClick={dismissToast}><X size={14}/></button></div>}
 
-    <WorkspaceDialogs storageKeys={storageKeys} onStorageReset={allowSave} dialog={dialog} dialogId={dialogId} state={state} dispatch={dispatch} context={context} encounter={encounter} unreadable={unreadable} onClose={closeDialog} notify={notify} onSavePatient={savePatient} onOpen={openDialog} onSelect={selectEncounter}
+    <WorkspaceDialogs storageKeys={storageKeys} encryption={encryption} onStorageReset={allowSave} dialog={dialog} dialogId={dialogId} state={state} dispatch={dispatch} context={context} encounter={encounter} unreadable={unreadable} onClose={closeDialog} notify={notify} onSavePatient={savePatient} onOpen={openDialog} onSelect={selectEncounter}
       onScribe={(transcript) => { setMode("scribe"); generate(transcript, "scribe", false); closeDialog(); }} onPromptReset={() => setPrompt("")} onUnreadableCleared={() => setUnreadable(null)}/>
   </div>;
 }

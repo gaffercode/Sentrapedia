@@ -31,6 +31,22 @@ export function saveLocalWorkspace(state: Workspace, write: (raw: string) => voi
   catch { return "Perubahan belum tersimpan ke browser. Ekspor backup dari profil workspace untuk menyimpan salinan."; }
 }
 
+/**
+ * The encrypted save (docs/specs/2026-11-19-workspace-encryption-design.md): seals the JSON, then writes it only when no
+ * newer save started meanwhile, so a slow older save never overwrites a newer one. Messages match saveLocalWorkspace.
+ */
+export async function saveEncryptedWorkspace(state: Workspace, seal: (raw: string) => Promise<string>, write: (sealed: string) => void, isLatest: () => boolean): Promise<string | null> {
+  try {
+    const raw = JSON.stringify(state);
+    const sealed = await seal(raw);
+    if (!isLatest()) return null;
+    write(sealed);
+    // The stored envelope is about a third larger than the plaintext (base64), so the quota is reached on its length.
+    return sealed.length < storageWarningChars ? null : `Penyimpanan browser hampir penuh (${(sealed.length / 1e6).toFixed(1)} juta karakter). Ekspor backup dari profil workspace, lalu hapus encounter lama.`;
+  }
+  catch { return "Perubahan belum tersimpan ke browser. Ekspor backup dari profil workspace untuk menyimpan salinan."; }
+}
+
 function date(value: unknown): value is string { return typeof value === "string" && Number.isFinite(Date.parse(value)); }
 export function validTemplate(value: unknown): value is PersonalTemplate {
   return record(value) && text(value.id, 100) && !!value.id && text(value.name, 80) && !!value.name.trim() && modeIds.includes(value.mode as ModeId) && text(value.instructions, 2000) && Array.isArray(value.sections) && value.sections.length > 0 && value.sections.length <= 20 && value.sections.every((item) => text(item, 80) && !!item.trim() && !/[\r\n]/.test(item)) && new Set(value.sections.map((item: string) => item.toLowerCase())).size === value.sections.length;
