@@ -2,20 +2,37 @@
 
 import { ArrowRight, Ellipsis, ListPlus, PanelLeft, Plus, Search, SlidersHorizontal, SquarePen, UserRoundPlus, AudioLines } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AccountMenu } from "./account-menu";
+import { fetchDailyUsage } from "../lib/aadi/usage-client";
+import { feedbackFailure, sendWorkspaceFeedback } from "../lib/feedback-client";
+import type { DailyUsage } from "../lib/aadi/limits";
 import { Brand } from "./brand";
 import { SidebarSubmenu } from "./sidebar-submenu";
 import { PatientAvatar } from "./patient-avatar";
 import type { Workspace } from "../lib/workspace";
 
 export type DialogName = "patient" | "list" | "search" | "context" | "scribe" | "upgrade" | "account" | "feedback" | "encounter" | "legal" | "document" | "commands" | "templates" | "queue" | "knowledge" | null;
-interface Props { state: Workspace; open: boolean; mobile: boolean; onToggle: () => void; onDialog: (name: DialogName, id?: string) => void; onNew: (patientId?: string) => void; onSelect: (id: string) => void; onToast: (text: string) => void; onSignOut?: () => void; userButton?: ReactNode; beforeLeave?: () => boolean }
+interface Props { state: Workspace; open: boolean; mobile: boolean; onToggle: () => void; onDialog: (name: DialogName, id?: string) => void; onNew: (patientId?: string) => void; onSelect: (id: string) => void; onToast: (text: string, tone?: "error") => void; onSignOut?: () => void; userButton?: ReactNode; beforeLeave?: () => boolean }
 
 export function Sidebar({ state, open, mobile, onToggle, onDialog, onNew, onSelect, onToast, onSignOut, userButton, beforeLeave }: Props) {
   // Pengaturan Agent is a page: the workspace may veto the navigation while it holds unsaved text or a running analysis.
   const leave = (event: { preventDefault: () => void }) => { if (beforeLeave && !beforeLeave()) event.preventDefault(); };
   const [feedback, setFeedback] = useState("");
+  // Read when the account menu opens, the only place the count shows, so a page load costs no request.
+  const [usage, setUsage] = useState<DailyUsage | null>(null);
+  const refreshUsage = useCallback(() => { void fetchDailyUsage().then(setUsage); }, []);
+  // The note goes to the server (src/lib/feedback.ts) and the box empties only once it is kept; nothing stays in the browser.
+  const [sending, setSending] = useState(false);
+  async function sendFeedback() {
+    if (sending || !feedback.trim()) return;
+    setSending(true);
+    try {
+      const outcome = await sendWorkspaceFeedback(feedback);
+      if (outcome === "sent") { setFeedback(""); onToast("Masukan terkirim. Terima kasih."); }
+      else onToast(feedbackFailure[outcome], "error");
+    } finally { setSending(false); }
+  }
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!mobile || !open) return;
@@ -52,8 +69,8 @@ export function Sidebar({ state, open, mobile, onToggle, onDialog, onNew, onSele
         { id: "patients", title: "Semua Pasien", selectedId: state.encounters.find((e) => e.id === state.activeEncounterId)?.patientId, items: state.patients.map((patient) => ({ id: patient.id, label: <><PatientAvatar sex={patient.sex} size={14}/><span>{patient.name}</span></>, onSelect: () => onDialog("patient", patient.id), actions: <><button className="small-icon" aria-label={`Edit ${patient.name}`} onClick={() => onDialog("patient", patient.id)}><Ellipsis size={13}/></button><button className="small-icon" aria-label={`Encounter baru untuk ${patient.name}`} title="Encounter baru" onClick={() => onNew(patient.id)}><SquarePen size={12}/></button></> })), empty: <button className="empty-text" onClick={() => onDialog("patient")}>Tambah Pasien pertama <Plus size={12}/></button> },
         { id: "encounters", title: "Semua Encounter", selectedId: state.activeEncounterId, items: state.encounters.map((encounter) => ({ id: encounter.id, label: <span title={encounter.title}>{encounter.title}</span>, onSelect: () => onSelect(encounter.id), actions: <button className="small-icon" aria-label={`Opsi untuk ${encounter.title}`} onClick={() => onDialog("encounter", encounter.id)}><Ellipsis size={13}/></button> })), empty: <button className="empty-text" onClick={() => { onNew(); requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".composer textarea")?.focus()); }}>Mulai Encounter pertama <Plus size={12}/></button> },
       ]}/></div>
-      <div className="sidebar-bottom"><form className="feedback" onSubmit={(event) => { event.preventDefault(); if (feedback.trim()) { onToast("Masukan tersimpan secara lokal. Terima kasih telah membantu mengembangkan workspace."); sessionStorage.setItem("sentrapedia-feedback", feedback); setFeedback(""); } }}><input aria-label="Masukan" placeholder="Tulis masukan di sini..." value={feedback} onChange={(e) => setFeedback(e.target.value)} maxLength={1000}/><button aria-label="Simpan masukan" disabled={!feedback.trim()}><ArrowRight size={13}/></button></form>
-        <AccountMenu name={state.settings.name || "Sentrapedia"} plan="Lite" onSignOut={onSignOut} onOpen={(name) => { if (mobile) onToggle(); onDialog(name); }} onLeave={leave}>{userButton}</AccountMenu>
+      <div className="sidebar-bottom"><form className="feedback" onSubmit={(event) => { event.preventDefault(); void sendFeedback(); }}><input aria-label="Masukan" placeholder="Tulis masukan di sini..." value={feedback} onChange={(e) => setFeedback(e.target.value)} maxLength={1000}/><button aria-label="Kirim masukan" disabled={!feedback.trim() || sending}><ArrowRight size={13}/></button></form>
+        <AccountMenu name={state.settings.name || "Sentrapedia"} plan="Lite" usage={usage} onMenuOpen={refreshUsage} onSignOut={onSignOut} onOpen={(name) => { if (mobile) onToggle(); onDialog(name); }} onLeave={leave}>{userButton}</AccountMenu>
       </div>
     </aside>
   </>;

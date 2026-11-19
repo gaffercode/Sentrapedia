@@ -21,7 +21,8 @@ describe("sync migrations", () => {
     // workspace_sync joined on 2026-10-25, when Gaffer answered that document bodies do sync.
     // analysis_usage and analysis_budget_day joined on 2026-11-17 with the gated beta's limits (0003).
     // output_report joined the same day with the report of problematic output (0004).
-    expect(tablesOf(sql).sort()).toEqual(["analysis_budget_day", "analysis_usage", "output_report", "personal_template", "profile", "workspace_sync"]);
+    // workspace_feedback joined on 2026-11-19 when Gaffer chose to build the kept sidebar feedback (0005).
+    expect(tablesOf(sql).sort()).toEqual(["analysis_budget_day", "analysis_usage", "output_report", "personal_template", "profile", "workspace_feedback", "workspace_sync"]);
   });
 
   it("pins the stored format on every synced document, so a reader can predate a writer", () => {

@@ -28,3 +28,15 @@ export function syncFailureMessage(reason: "unavailable" | "signed-out" | "faile
   if (reason === "signed-out") return "Sesi sudah berakhir. Silakan masuk kembali untuk menyinkronkan.";
   return "Sinkronisasi gagal. Data lokal tidak berubah, silakan coba kembali.";
 }
+
+// Template parts are added after the document message, so an instance with no templates reads exactly as before.
+export function templatePushMessage(result: { saved: string[]; held: string[] }): string {
+  return [
+    result.saved.length ? `${result.saved.length} template pribadi tersimpan di server.` : "",
+    result.held.length ? `${result.held.length} template pribadi ditahan karena memuat identitas dan tetap hanya di browser ini.` : "",
+  ].filter(Boolean).join(" ");
+}
+
+export function templatePullMessage(added: string[]): string {
+  return added.length ? `${added.length} template pribadi diambil dari server.` : "";
+}

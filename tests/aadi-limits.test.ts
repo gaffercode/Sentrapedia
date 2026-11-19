@@ -69,7 +69,7 @@ describe("configuration that would switch the guard off refuses instead", () => 
   });
 
   it("refuses when the store fails, and never runs the analysis unguarded", async () => {
-    const broken: LimitsStore = { admit: async () => { throw new Error("connection refused"); }, settle: async () => ({ alert: false, spentUsd: 0 }) };
+    const broken: LimitsStore = { admit: async () => { throw new Error("connection refused"); }, settle: async () => ({ alert: false, spentUsd: 0 }), used: async () => 0 };
     const { limits, events } = setup({ store: broken });
     expect(await limits.admit("user_a")).toMatchObject({ ok: false, code: "LIMITS_UNAVAILABLE", status: 503 });
     expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit" }]);
@@ -82,7 +82,7 @@ describe("configuration that would switch the guard off refuses instead", () => 
 
   it("keeps the answer when settling fails, and logs it without any case text", async () => {
     const store = createMemoryLimitsStore();
-    const flaky: LimitsStore = { admit: store.admit, settle: async () => { throw new Error("timeout"); } };
+    const flaky: LimitsStore = { admit: store.admit, settle: async () => { throw new Error("timeout"); }, used: store.used };
     const { limits, events } = setup({ store: flaky });
     await expect((await admitted(limits)).settle(0.01, true)).resolves.toBeUndefined();
     expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "settle" }]);
@@ -152,5 +152,25 @@ describe("shared daily budget", () => {
     expect(await store.admit("user_b", "2026-11-17", 100, 0.2, 0.5)).toBe("admitted");
     expect(await store.admit("user_c", "2026-11-17", 100, 0.2, 0.5)).toBe("budget");
     expect(await store.admit("user_b", "2026-11-18", 100, 0.5, 0.5)).toBe("admitted");
+  });
+});
+
+// The account menu shows the person's own count (docs/FEATURE-IDEAS.md idea 3); the shared budget in money is never shown.
+describe("daily usage", () => {
+  it("reports the person's own count and quota", async () => {
+    const { limits } = setup({ quota: "3" });
+    await (await admitted(limits)).settle(0.01, true);
+    await (await admitted(limits)).settle(0.01, true);
+    await (await admitted(limits)).settle(0, false);
+    expect(await limits.usage("user_a")).toEqual({ used: 2, quota: 3 });
+    expect(await limits.usage("user_b")).toEqual({ used: 0, quota: 3 });
+  });
+
+  it("has no usage when the guard cannot say", async () => {
+    expect(await setup({ store: undefined }).limits.usage("user_a")).toBeNull();
+    expect(await setup().limits.usage(undefined)).toBeNull();
+    expect(await setup({ quota: undefined }).limits.usage("user_a")).toBeNull();
+    const failing: LimitsStore = { ...createMemoryLimitsStore(), used: async () => { throw new Error("down"); } };
+    expect(await setup({ store: failing }).limits.usage("user_a")).toBeNull();
   });
 });

@@ -2,8 +2,9 @@ import { getBetaAccess } from "../../../lib/auth/server";
 import { accessFailure, errorResponse } from "../../../lib/auth/access";
 import { syncPrincipal } from "../../../lib/sync/principal";
 import { syncConfigured } from "../../../lib/sync/db";
-import { pullEncounters, pushEncounters } from "../../../lib/sync/store";
+import { pullEncounters, pullTemplates, pushEncounters, pushTemplates } from "../../../lib/sync/store";
 import type { Encounter } from "../../../lib/workspace";
+import { validTemplate, type PersonalTemplate } from "../../../lib/workflow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +27,8 @@ export async function GET() {
   const resolved = await principalOf();
   if (!resolved.ok) return resolved.response;
   try {
-    return Response.json({ status: "ok", documents: await pullEncounters(resolved.principal) }, { headers: { "Cache-Control": "no-store" } });
+    const [documents, templates] = [await pullEncounters(resolved.principal), await pullTemplates(resolved.principal)];
+    return Response.json({ status: "ok", documents, templates }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     // Local state stays authoritative, so a failed pull is reported rather than raised.
     return unavailable();
@@ -38,17 +40,23 @@ export async function POST(request: Request) {
   if (!resolved.ok) return resolved.response;
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return badInput();
   let encounters: Encounter[];
+  let templates: PersonalTemplate[];
   try {
     const text = await request.text();
     if (text.length > maxBodyBytes) return badInput();
-    const parsed = JSON.parse(text) as { encounters?: unknown };
+    const parsed = JSON.parse(text) as { encounters?: unknown; templates?: unknown };
     if (!Array.isArray(parsed.encounters)) return badInput();
     encounters = parsed.encounters as Encounter[];
+    // Templates are optional (an older browser sends none) and, like the workspace, at most 50, each a valid template.
+    const sent = parsed.templates ?? [];
+    if (!Array.isArray(sent) || sent.length > 50 || !sent.every(validTemplate)) return badInput();
+    templates = sent;
   } catch { return badInput(); }
   try {
     // held lists the documents the guard refused; they stay in the browser and are never rewritten to fit.
     const outcome = await pushEncounters(resolved.principal, encounters);
-    return Response.json({ status: "ok", ...outcome }, { headers: { "Cache-Control": "no-store" } });
+    const templateOutcome = await pushTemplates(resolved.principal, templates);
+    return Response.json({ status: "ok", ...outcome, templates: templateOutcome }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return unavailable();
   }

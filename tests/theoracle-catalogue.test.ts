@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AccessResult } from "../src/lib/auth/policy";
 import { createAadiGateway } from "../src/lib/aadi/gateway";
 import type { Disease } from "../src/lib/theoracle";
+import { withCatalog } from "./private-data";
 import { createCatalogueApi, createDetailQuota, DAILY_DETAIL_LIMIT, jakartaDay, SEARCH_LIMIT } from "../src/lib/theoracle-catalogue-api";
 import type { LoadedCatalogue } from "../src/lib/theoracle-catalogue";
 
@@ -102,5 +103,14 @@ describe("without the data folder", () => {
     const caseData = { demographics: { ageYears: 30, sex: "unknown" as const }, chiefComplaint: "Keluhan uji", anamnesis: { freeText: "Uji" }, vitals: {}, physicalExam: [], results: [], currentMedications: [], knownConditions: [], allergies: [], facilityCapabilities: [] };
     await expect(retrieveTheOracleGrounding(caseData)).rejects.toThrow(/belum terpasang/);
     rmSync(empty, { recursive: true, force: true });
+  });
+});
+
+describe("catalogue SKDI levels", () => {
+  it.skipIf(!withCatalog)("every record carries a clean level or none, and the private catalogue has 4A records", async () => {
+    const { loadCatalogue } = await import("../src/lib/theoracle-catalogue");
+    const levels = loadCatalogue().diseases.map(d => d.skdi ?? null);
+    expect(levels.every(level => level === null || ["1", "2", "3A", "3B", "4A", "4B"].includes(level))).toBe(true);
+    expect(levels).toContain("4A");
   });
 });

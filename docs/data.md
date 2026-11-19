@@ -5,7 +5,7 @@ Sentrapedia's local workspace needs no database server to run. Its data comes fr
 ## Browser storage
 
 - `sentrapedia-workspace-v2:<userId>` (localStorage, one key per signed-in account): patients, encounters, drafts and settings for the workspace.
-- `sentrapedia-feedback` (localStorage): feedback the user leaves on generated drafts.
+- The sidebar "Masukan" box keeps nothing in the browser: since 2026-11-19 the note is sent to the `workspace_feedback` table (`db/migrations/0005_workspace_feedback.sql`) and the box empties only once the server keeps it.
 
 The storage is unencrypted. Record cases without patient identity: no names, identity numbers or contact details. The account dialog can export a backup or clear all local records.
 

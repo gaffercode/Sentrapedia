@@ -777,3 +777,15 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .agent-knowledge dt { color: var(--color-text-secondary); }
 .agent-knowledge dd { margin: 0; overflow-wrap: anywhere; }
 
+
+/* Cetak prints one document (src/lib/print.ts): only the marked element shows, with its review status on top. */
+@media print {
+  @page { size: A4; margin: 18mm; }
+  html[data-printing] body * { visibility: hidden; }
+  /* The shell is 100dvh with hidden or clipped overflow; every ancestor of the document grows so it is not cut to one page. */
+  html[data-printing], html[data-printing] :has([data-print-target]) { height: auto; max-height: none; min-height: 0; overflow: visible; position: static; display: block; }
+  html[data-printing] [data-print-target], html[data-printing] [data-print-target] * { visibility: visible; }
+  html[data-printing] [data-print-target] { position: absolute; inset: 0 auto auto 0; width: 100%; max-height: none; overflow: visible; color: var(--color-text-primary); background: none; }
+  html[data-printing] [data-print-target] .message-actions, html[data-printing] [data-print-target] .pipeline-trace { display: none; }
+  html[data-printing] [data-print-target]::before { content: attr(data-print-status); display: block; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+}

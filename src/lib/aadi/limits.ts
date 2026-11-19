@@ -9,13 +9,21 @@
 
 export type LimitRefusal = { ok: false; code: "QUOTA_EXCEEDED" | "BUDGET_EXHAUSTED" | "QUOTA_NOT_SET" | "LIMITS_UNAVAILABLE"; status: number; message: string };
 export type LimitAdmission = { ok: true; settle: (spentUsd: number, completed: boolean) => Promise<void> } | LimitRefusal;
-export interface AnalysisLimits { admit(principal: string | undefined): Promise<LimitAdmission> }
+/** The person's own count today against their quota, for the account menu. The shared budget is never exposed. */
+export type DailyUsage = { used: number; quota: number };
+export interface AnalysisLimits {
+  admit(principal: string | undefined): Promise<LimitAdmission>;
+  /** null whenever the guard could not admit anyone either: no store, no principal, no quota, or a failing store. */
+  usage(principal: string | undefined): Promise<DailyUsage | null>;
+}
 
 export interface LimitsStore {
   /** One atomic step: count the analysis against the person's day and hold its cost cap against the shared day. */
   admit(principal: string, day: string, quota: number, holdUsd: number, budgetUsd: number): Promise<"admitted" | "quota" | "budget">;
   /** Releases the hold, charges what was spent, returns the place when the analysis did not complete. `alert` is true once per day. */
   settle(principal: string, day: string, holdUsd: number, spentUsd: number, completed: boolean, alertAtUsd: number): Promise<{ alert: boolean; spentUsd: number }>;
+  /** The person's analyses counted on that day, 0 when there is no row. */
+  used(principal: string, day: string): Promise<number>;
 }
 
 export const BUDGET_ALERT_FRACTION = 0.8;
@@ -38,6 +46,12 @@ export function createAnalysisLimits(options: { store?: LimitsStore; quota: stri
   // Nothing logged here carries case text: only the event, the day and money.
   const log = options.log ?? (entry => console.warn(JSON.stringify(entry)));
   return {
+    async usage(principal) {
+      const quota = parseDailyQuota(options.quota);
+      if (!options.store || !principal || quota === null) return null;
+      try { return { used: await options.store.used(principal, now().toISOString().slice(0, 10)), quota }; }
+      catch { log({ event: "aadi.limits", level: "error", stage: "usage" }); return null; }
+    },
     async admit(principal) {
       const store = options.store;
       if (!store || !principal) return refuse("LIMITS_UNAVAILABLE");
@@ -90,5 +104,6 @@ export function createMemoryLimitsStore(): LimitsStore {
       days.set(day, { ...next, alerted: next.alerted || alert });
       return { alert, spentUsd: next.spent };
     },
+    async used(principal, day) { return used.get(`${day} ${principal}`) ?? 0; },
   };
 }

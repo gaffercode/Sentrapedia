@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parity from "./fixtures/pii-parity.json";
-import { projectEncounterForSync } from "../src/lib/sync/guard";
+import { projectEncounterForSync, projectTemplateForSync } from "../src/lib/sync/guard";
 import type { Encounter } from "../src/lib/workspace";
 
 // S2 of docs/plans/active/2026-10-25-e2e-integration.md. The guard holds a document back; it never rewrites
@@ -83,5 +83,19 @@ describe("sync guard", () => {
   it("keeps task text under the same guard as the rest", () => {
     expect(projectEncounterForSync(encounter({ tasks: [{ id: "t1", text: "Hubungi 081234567890", done: false }] })).ok).toBe(false);
     expect(projectEncounterForSync(encounter({ tasks: [{ id: "t1", text: "Kontrol tujuh hari", done: false }] })).ok).toBe(true);
+  });
+});
+
+// Personal templates sync through the same manual buttons (docs/FEATURE-IDEAS.md idea 6), with the same rule: a template
+// that carries identity is held back whole, never rewritten.
+describe("template guard", () => {
+  const template = { id: "tpl-1", name: "Kontrol hipertensi", mode: "clinic" as const, sections: ["Keluhan", "Tekanan darah"], instructions: "Ringkas." };
+  it("projects a clean template through an allowlist", () => {
+    expect(projectTemplateForSync({ ...template, extra: "x" } as typeof template)).toEqual({ ok: true, id: "tpl-1", body: template });
+  });
+  it("holds a template whose name, a section or the instructions carry identity", () => {
+    for (const changed of [{ name: "Tn. Budi" }, { sections: ["Keluhan", "NIK 3201234567890123"] }, { instructions: "hubungi 081234567890" }]) {
+      expect(projectTemplateForSync({ ...template, ...changed })).toEqual({ ok: false, reason: "identity" });
+    }
   });
 });

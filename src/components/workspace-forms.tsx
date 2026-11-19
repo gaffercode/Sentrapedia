@@ -4,8 +4,8 @@ import { clearUnreadableStorage, type WorkspaceStorageKeys } from "../lib/worksp
 import type { Dispatch } from "react";
 import { useState } from "react";
 import { pullSyncedDocuments, pushEncountersToServer } from "../lib/sync/client";
-import { mergePulledDocuments } from "../lib/sync/merge";
-import { pullMessage, pushMessage, syncFailureMessage } from "../lib/sync/messages";
+import { mergePulledDocuments, mergePulledTemplates } from "../lib/sync/merge";
+import { pullMessage, pushMessage, syncFailureMessage, templatePullMessage, templatePushMessage } from "../lib/sync/messages";
 import { newEncounter, type Encounter, type Patient, type Workspace, type WorkspaceAction } from "../lib/workspace";
 import { ContextForm, EncounterForm, ListForm, PatientForm, SearchDialog } from "./forms";
 import { Scribe } from "./scribe";
@@ -24,16 +24,18 @@ export function WorkspaceDialogs({ storageKeys, onStorageReset, dialog, dialogId
     try { await work(); } finally { setSyncBusy(false); }
   }
   const pushToServer = () => runSync(async () => {
-    const outcome = await pushEncountersToServer(state.encounters);
+    const outcome = await pushEncountersToServer(state.encounters, state.templates ?? []);
     if (!outcome.ok) { notify(syncFailureMessage(outcome.reason), "error"); return; }
-    notify(pushMessage(outcome.value), outcome.value.held.length ? "error" : undefined);
+    const templates = outcome.value.templates ?? { saved: [], held: [] };
+    notify([pushMessage(outcome.value), templatePushMessage(templates)].filter(Boolean).join(" "), outcome.value.held.length || templates.held.length ? "error" : undefined);
   });
   const pullFromServer = () => runSync(async () => {
     const outcome = await pullSyncedDocuments();
     if (!outcome.ok) { notify(syncFailureMessage(outcome.reason), "error"); return; }
-    const merged = mergePulledDocuments(state, outcome.value);
-    if (merged.added.length) dispatch({ type: "restore", state: merged.workspace });
-    notify(pullMessage(merged));
+    const merged = mergePulledDocuments(state, outcome.value.documents);
+    const withTemplates = mergePulledTemplates(merged.workspace, outcome.value.templates);
+    if (merged.added.length || withTemplates.added.length) dispatch({ type: "restore", state: withTemplates.workspace });
+    notify([pullMessage(merged), templatePullMessage(withTemplates.added)].filter(Boolean).join(" "));
   });
   return <>
     {dialog === "patient" && <PatientForm key={dialogId ?? "new"} patient={state.patients.find((p) => p.id === dialogId)} onSave={onSavePatient} onDelete={(id) => { dispatch({ type: "patient.delete", id }); onClose(); notify("Pasien lokal dan Encounter terkait dihapus."); }} onClose={onClose}/>}

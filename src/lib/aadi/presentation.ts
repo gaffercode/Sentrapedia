@@ -5,6 +5,7 @@ import { newId, type Message } from "../workspace";
 import { documentSections, emptySection } from "../studio";
 import type { ModeId } from "../drafts";
 import { freshReview, type ReviewItem } from "../workflow";
+import { skdiLines } from "../skdi";
 import { validTheOracleGrounding, type TheOracleGroundingBundle } from "../theoracle-grounding-types";
 import { furtherExams, headacheWords, physicalExamPlain, physicalExamText, table } from "../physical-exam";
 import { applyTherapyGate, gateEvidence, unstrength, validGate, type EvidenceGateReport, type GateStatus } from "../theoracle-evidence-gate";
@@ -163,9 +164,10 @@ export function regimenLine(r: AadiTherapy["regimen"][number], withNote = true):
   const often = times && !(times === 1 && /tunggal|satu kali pemberian/i.test(r.duration)) ? `${oral ? "diminum " : ""}${timesWords[times] ?? `${times} kali`} sehari` : "";
   const dose = !r.dose ? "dosis: cek pedoman" : times ? [amount.replace(/(\d)\s*([a-zµμ%])/gi, "$1 $2"), often].filter(Boolean).join(", ") : r.dose;
   // A name that already carries its strength per tablet, or a removed dose, is followed by a comma.
+  // A removed dose drops its note too: a weight or condition adjustment is a dose the gate did not verify.
   const comma = !r.dose || /\d\s*(?:mg|mcg|g)\b/i.test(r.drug);
   const duration = r.duration ? (/^\d/.test(r.duration.trim()) ? ` selama ${r.duration.trim()}` : `, ${r.duration.trim()}`) : "";
-  return `${capital(r.drug.trim())}${comma ? ", " : " "}${dose}${!oral && r.route ? `, ${r.route}` : ""}${duration}${withNote && r.note ? ` (${r.note})` : ""}`;
+  return `${capital(r.drug.trim())}${comma ? ", " : " "}${dose}${!oral && r.route ? `, ${r.route}` : ""}${duration}${withNote && r.dose && r.note ? ` (${r.note})` : ""}`;
 }
 
 export function aadiDraft(result: AadiResult, traceId: string, createdAt: string, caseData?: CaseState, focus?: AadiFocus, gate?: EvidenceGateReport): string {
@@ -202,8 +204,11 @@ export function aadiDraft(result: AadiResult, traceId: string, createdAt: string
   const tests = actions(["test"]);
   // Oracle's Indonesian name where a record has exactly this code (a "G44" record never renames G44.2); else AADI's label.
   const named = (d: { icd10: string; label: string }) => `${catalogueIndex().find(r => r.kode.toUpperCase() === d.icd10.toUpperCase())?.nama ?? d.label} (${d.icd10})`;
-  const demographics = [caseData?.demographics.ageYears == null ? "" : `${caseData.demographics.ageYears} tahun`, caseData?.demographics.sex === "M" ? "Laki-laki" : caseData?.demographics.sex === "F" ? "Perempuan" : "", caseData?.demographics.pregnant === undefined ? "" : `Hamil: ${caseData.demographics.pregnant ? "Ya" : "Tidak"}`].filter(Boolean).join(" · ");
+  const demographics = [caseData?.demographics.ageYears == null ? "" : `${caseData.demographics.ageYears} tahun`, caseData?.demographics.sex === "M" ? "Laki-laki" : caseData?.demographics.sex === "F" ? "Perempuan" : "", caseData?.demographics.pregnant === undefined ? "" : `Hamil: ${caseData.demographics.pregnant ? "Ya" : "Tidak"}`, caseData?.demographics.weightKg === undefined ? "" : `Berat badan ${caseData.demographics.weightKg} kg`].filter(Boolean).join(" · ");
   const disposition = dispositionText(result);
+  // The catalogue's SKDI level for the primary records, beside the disposition and never in its place (src/lib/skdi.ts).
+  // Part 2 only: "Draft Rujukan" goes to the receiving facility, where a level could read as a reason to refuse.
+  const skdi = join(skdiLines(primary));
 
   const vitalItems = caseData ? Object.entries(caseData.vitals).map(([key, value]) => `${vitalLabels[key] ?? key}: ${value}`) : [];
   const resultItems = caseData?.results.map(r => `${r.name}: ${r.value}${r.unit ? ` ${r.unit}` : ""}${r.flag ? ` (${r.flag})` : ""}`) ?? [];
@@ -269,6 +274,7 @@ export function aadiDraft(result: AadiResult, traceId: string, createdAt: string
       `Tanda tersebut memerlukan evaluasi segera dan pertimbangan pemeriksaan lanjutan atau rujukan. ${generalPack.emergency}${headache ? ` ${headachePack.emergency}` : ""}`,
       bold("Diagnosis yang tidak boleh terlewat menurut AADI:", bullets(result.differential.cannotMiss.map(d => `${d.label} (${d.icd10})`))),
       disposition ? `**Saran disposisi AADI:** ${disposition}` : "",
+      skdi,
     ])],
     // Parts 3 and 4 come from what AADI asks for in this case; the template list stands in only when it asks for nothing.
     [diagnosisSectionTitles[2], questionRows.length || result.missingInformation.length

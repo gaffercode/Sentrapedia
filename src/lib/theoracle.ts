@@ -4,12 +4,16 @@
 //   the index    id, nama, kode and kategori of every entry, for the evidence gate and the names in a draft;
 //   the records  full entries, only those an analysis cited (attached by /api/aadi).
 
-export interface Disease { id: number; nama: string; kategori: string; kode: string; definisi: string; gejala: string[]; diagnosis: string; terapi: string; rujukan: string }
+// skdi (2026-11-19): the SKDI competency level from the SSOT's kompetensi, null where the source gives no clean level and
+// absent from a catalogue built before it (scripts/knowledge-ssot.mjs, skdiLevel).
+export const skdiLevels = ["1", "2", "3A", "3B", "4A", "4B"] as const;
+export type SkdiLevel = (typeof skdiLevels)[number];
+export interface Disease { id: number; nama: string; kategori: string; kode: string; definisi: string; gejala: string[]; diagnosis: string; terapi: string; rujukan: string; skdi?: SkdiLevel | null }
 export type CatalogueEntry = Pick<Disease, "id" | "nama" | "kode" | "kategori">;
 export interface CatalogueMeta { version: string; sample: boolean; declaredCategories: number }
 
 // The provenance of the real catalogue file: its SHA-256 identifies the reviewed version a draft cites.
-export const theOracleSource = { file: "oracle/sentrapedia.json", hash: "3c9b32e6b01a22c63ff73c8d487bf4e8edc26e99aedcf9f3f89b32795b163fd1" } as const;
+export const theOracleSource = { file: "oracle/sentrapedia.json", hash: "3cf839987972d26eccd2681532f714d19172382bc5d97bf78b85108b7328a48f" } as const;
 
 let index: readonly CatalogueEntry[] = [];
 let meta: CatalogueMeta | null = null;
@@ -52,5 +56,6 @@ export function validEntry(value: unknown): value is CatalogueEntry {
 export function validDisease(value: unknown): value is Disease {
   if (!validEntry(value)) return false;
   const d = value as unknown as Record<string, unknown>;
-  return text(d.definisi, 50_000) && text(d.diagnosis, 50_000) && text(d.terapi, 100_000) && text(d.rujukan, 50_000) && Array.isArray(d.gejala) && d.gejala.length <= 200 && d.gejala.every(g => text(g, 2_000));
+  return text(d.definisi, 50_000) && text(d.diagnosis, 50_000) && text(d.terapi, 100_000) && text(d.rujukan, 50_000) && Array.isArray(d.gejala) && d.gejala.length <= 200 && d.gejala.every(g => text(g, 2_000))
+    && (d.skdi === undefined || d.skdi === null || (skdiLevels as readonly unknown[]).includes(d.skdi));
 }

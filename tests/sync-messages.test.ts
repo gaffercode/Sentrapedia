@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pushMessage, pullMessage, syncFailureMessage } from "../src/lib/sync/messages";
+import { pushMessage, pullMessage, syncFailureMessage, templatePullMessage, templatePushMessage } from "../src/lib/sync/messages";
 
 // Every string the doctor reads is Indonesian, sentence case, and says plainly what happened to the documents
 // that were NOT sent: a held document stays only in this browser, and that is the part worth knowing.
@@ -53,5 +53,17 @@ describe("sync messages", () => {
     expect(syncFailureMessage("unavailable")).toContain("belum aktif");
     expect(syncFailureMessage("signed-out")).toMatch(/masuk/i);
     expect(syncFailureMessage("failed")).toContain("Data lokal tidak berubah");
+  });
+});
+
+describe("template sync messages", () => {
+  it("reports saved and held templates, and says nothing when there were none", () => {
+    expect(templatePushMessage({ saved: ["a", "b"], held: [] })).toBe("2 template pribadi tersimpan di server.");
+    expect(templatePushMessage({ saved: [], held: ["a"] })).toBe("1 template pribadi ditahan karena memuat identitas dan tetap hanya di browser ini.");
+    expect(templatePushMessage({ saved: [], held: [] })).toBe("");
+  });
+  it("reports pulled templates", () => {
+    expect(templatePullMessage(["a"])).toBe("1 template pribadi diambil dari server.");
+    expect(templatePullMessage([])).toBe("");
   });
 });

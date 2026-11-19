@@ -1,7 +1,8 @@
 "use client";
 
 import { Copy, Download, Printer, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { printDocument } from "../lib/print";
 import { modes } from "../lib/drafts";
 import type { Message } from "../lib/workspace";
 import { DocumentContent } from "./document-studio";
@@ -20,6 +21,7 @@ export function downloadText(content: string, name: string) {
 export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument }: { message: Message; onEdit: (content: string) => void; onToast: (text: string, tone?: "error") => void; onReuse: (content: string) => void; onOpenDocument: (id: string) => void }) {
   // A fresh answer rises softly into focus (globals.css, data-reveal); a reopened one appears at once.
   const [fresh] = useState(() => message.role === "assistant" && freshAnswer(message));
+  const article = useRef<HTMLElement>(null);
   if (message.role === "user") return <div className="user-message"><div>{message.content}</div><button className="icon-button" aria-label="Gunakan kembali prompt" title="Gunakan kembali prompt" onClick={() => onReuse(message.content)}><RotateCcw size={13}/></button></div>;
   const aadi = hasAadiSource(message);
   const trace = aadi ? pipelineTrace(message) : [];
@@ -31,7 +33,7 @@ export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument 
   async function copy() {
     try { await navigator.clipboard.writeText(output); onToast("Jawaban disalin."); } catch { onToast("Clipboard tidak tersedia. Pilih teks jawaban lalu salin secara manual.", "error"); }
   }
-  return <article className="assistant-message" data-reveal={fresh || undefined}>
+  return <article ref={article} className="assistant-message" data-reveal={fresh || undefined}>
     {/* A document lives in the pane; the chat keeps one line and a card that opens it. */}
     {paneDocument(message) ? <>
       {aadi ? <div className="doctor-summary">{doctorSummary(content).map((line, index) => { const at = line.indexOf(":"); return <p key={index}>{at > 0 ? <><strong>{line.slice(0, at + 1)}</strong>{line.slice(at + 1)}</> : line}</p>; })}</div> : <p className="document-line">{`Draf ${modeName} disusun.`}</p>}
@@ -42,7 +44,7 @@ export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument 
       {message.mode === "question" && <div className="evidence-handoff"><strong>Siap untuk peninjauan Evidence</strong><span>Hubungkan AI Clinical dan sumber terverifikasi untuk menjawab ringkasan ini. Draf dapat diedit dan diekspor.</span></div>}
       <footer className="message-actions">
         <button type="button" className="icon-button" aria-label="Salin" title="Salin" onClick={copy}><Copy size={15}/></button>
-        <button type="button" className="icon-button" aria-label="Cetak" title="Cetak" onClick={() => window.print()}><Printer size={15}/></button>
+        <button type="button" className="icon-button" aria-label="Cetak" title="Cetak" onClick={() => printDocument(article.current, message.reviewStatus)}><Printer size={15}/></button>
         <button type="button" className="icon-button" aria-label="Unduh" title="Unduh" onClick={() => downloadText(output, downloadName(modeName ?? "jawaban", message.createdAt))}><Download size={15}/></button>
       </footer>
     </>}

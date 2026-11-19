@@ -31,7 +31,7 @@ describe("AADI contract and presentation", () => {
   it("supports every keyword of the localized contract snapshots", () => {
     function inspect(schema: JsonSchema) { for (const [key, value] of Object.entries(schema)) { expect(SUPPORTED_KEYWORDS.has(key)).toBe(true); if (key === "properties" || key === "$defs") Object.values(value as Record<string, JsonSchema>).forEach(inspect); if (key === "items") inspect(value as JsonSchema); } }
     inspect(requestSchema); inspect(responseSchema);
-    expect(createHash("sha256").update(readFileSync("src/lib/aadi/request.schema.json")).digest("hex")).toBe("9f4b3b79004249e814a14472b81410dd9c2600e89901e417aaf2fd89ecdf76f7");
+    expect(createHash("sha256").update(readFileSync("src/lib/aadi/request.schema.json")).digest("hex")).toBe("d501942a4d9f1492e5f07225f7e81b0111e9f798b92c703c2b030cc3f16a7a70");
     expect(createHash("sha256").update(readFileSync("src/lib/aadi/response.schema.json")).digest("hex")).toBe("e70b16bfba157b07d57afb0ee7489131fd4b8788ac5879539501fc30704a37ec");
   });
   it("preserves repeated and otherwise unlisted service evidence", () => {

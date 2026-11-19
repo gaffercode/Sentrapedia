@@ -1,6 +1,7 @@
 import { syncFormatVersion, type SyncedDocument } from "./contract";
 import { isRecord } from "../auth/policy";
 import type { Encounter, Message, Workspace } from "../workspace";
+import { validTemplate, type PersonalTemplate } from "../workflow";
 
 export interface MergeResult { workspace: Workspace; added: string[]; skipped: string[]; unknownFormat: string[] }
 
@@ -49,4 +50,21 @@ export function mergePulledDocuments(workspace: Workspace, documents: SyncedDocu
   // Returning the same object when nothing was added keeps the save effect from writing an identical workspace.
   if (!incoming.length) return { workspace, added, skipped, unknownFormat };
   return { workspace: { ...workspace, encounters: [...workspace.encounters, ...incoming] }, added, skipped, unknownFormat };
+}
+
+// Templates follow the same add-only rule: a known id keeps the browser's copy, an invalid body is dropped, and the
+// workspace never holds more than the 50 templates cleanWorkflowState allows.
+const maxTemplates = 50;
+export function mergePulledTemplates(workspace: Workspace, templates: unknown[]): { workspace: Workspace; added: string[] } {
+  const current = workspace.templates ?? [];
+  const known = new Set(current.map(template => template.id));
+  const incoming: PersonalTemplate[] = [];
+  for (const template of templates) {
+    if (current.length + incoming.length >= maxTemplates) break;
+    if (!validTemplate(template) || known.has(template.id)) continue;
+    known.add(template.id);
+    incoming.push(template);
+  }
+  if (!incoming.length) return { workspace, added: [] };
+  return { workspace: { ...workspace, templates: [...current, ...incoming] }, added: incoming.map(template => template.id) };
 }

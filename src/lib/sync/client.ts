@@ -1,4 +1,5 @@
-import type { SyncPushResult, SyncedDocument } from "./contract";
+import type { SyncPull, SyncPushResult, SyncedDocument } from "./contract";
+import type { PersonalTemplate } from "../workflow";
 import type { Encounter } from "../workspace";
 
 // Browser side of /api/sync. Every call can fail and none of them may disturb the workspace: the browser copy
@@ -23,12 +24,13 @@ function reasonFor(status: number): "unavailable" | "signed-out" | "failed" {
   return "failed";
 }
 
-export async function pullSyncedDocuments(): Promise<SyncOutcome<SyncedDocument[]>> {
+export async function pullSyncedDocuments(): Promise<SyncOutcome<SyncPull>> {
   try {
     const response = await call("/api/sync");
     if (!response.ok) return { ok: false, reason: reasonFor(response.status) };
-    const body = await response.json() as { documents?: unknown };
-    return Array.isArray(body.documents) ? { ok: true, value: body.documents as SyncedDocument[] } : { ok: false, reason: "failed" };
+    const body = await response.json() as { documents?: unknown; templates?: unknown };
+    // Templates are checked one by one when merged (merge.ts); a server that sends none sends an empty list.
+    return Array.isArray(body.documents) ? { ok: true, value: { documents: body.documents as SyncedDocument[], templates: Array.isArray(body.templates) ? body.templates : [] } } : { ok: false, reason: "failed" };
   } catch { return { ok: false, reason: "failed" }; }
 }
 
@@ -36,11 +38,13 @@ export async function pullSyncedDocuments(): Promise<SyncOutcome<SyncedDocument[
 // never syncs (guard.ts), so it does not travel either: it would only fill the route's 1 MB body limit.
 const withoutSourceText = (encounter: Encounter): Encounter => ({ ...encounter, messages: encounter.messages?.map(message => { const sent = { ...message }; delete sent.sourceText; return sent; }) });
 
-export async function pushEncountersToServer(encounters: Encounter[]): Promise<SyncOutcome<SyncPushResult>> {
+export async function pushEncountersToServer(encounters: Encounter[], templates: PersonalTemplate[] = []): Promise<SyncOutcome<SyncPushResult>> {
   try {
-    const response = await call("/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ encounters: encounters.map(withoutSourceText) }) });
+    const response = await call("/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ encounters: encounters.map(withoutSourceText), templates }) });
     if (!response.ok) return { ok: false, reason: reasonFor(response.status) };
     const body = await response.json() as Partial<SyncPushResult>;
-    return Array.isArray(body.saved) && Array.isArray(body.held) ? { ok: true, value: { saved: body.saved, held: body.held } } : { ok: false, reason: "failed" };
+    if (!Array.isArray(body.saved) || !Array.isArray(body.held)) return { ok: false, reason: "failed" };
+    const t = body.templates;
+    return { ok: true, value: { saved: body.saved, held: body.held, ...(t && Array.isArray(t.saved) && Array.isArray(t.held) ? { templates: { saved: t.saved, held: t.held } } : {}) } };
   } catch { return { ok: false, reason: "failed" }; }
 }

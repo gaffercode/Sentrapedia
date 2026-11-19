@@ -363,3 +363,15 @@ def test_smoke_live_measures_against_the_profile_step_deadline():
 
     profile = json.loads((Path(__file__).resolve().parents[3] / "scripts" / "aadi-profile.json").read_text(encoding="utf-8"))
     assert LIVE_DEADLINE_S == profile["stepDeadlineS"]
+
+
+def test_body_weight_reaches_the_model_only_when_given():
+    """docs/FEATURE-IDEAS.md idea 5: Gaffer ruled on 2026-11-19 that the model may see the weight. A case without it
+    reads exactly as before. The evidence gate still checks every dose the model writes."""
+    case = json.loads((CONTRACT_DIR / "examples" / "aadi-step-request.example.json").read_text(encoding="utf-8"))["case"]
+    without = case_text(case)
+    assert "weight" not in without
+    case["demographics"]["weightKg"] = 12.5
+    first = case_text(case).splitlines()[0]
+    assert first.endswith("; weight: 12.5 kg")
+    assert case_text(case).replace("; weight: 12.5 kg", "") == without

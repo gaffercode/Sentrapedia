@@ -12,7 +12,7 @@ here and update this table. `tests/test_contract.py` compares the copies with th
 
 | File | SHA-256 |
 | --- | --- |
-| `aadi-step-request.schema.json` | `48b78a529c57cdd7ecb8bcf338ffeb7b5807cc5eb40cb366dc5376d6dfe9ea5c` |
+| `aadi-step-request.schema.json` | `f0d4b2e3969308bb3ff49ccb41e64506bbc42044472b53bbef6411efe52a711f` |
 | `aadi-step-response.schema.json` | `5594dec0a998219d6bbdc6c4a83cb6fee5dfde42bb4f6016ec8d4078eca17e78` |
 | `examples/aadi-step-request.example.json` | `b5be590734e7cbb01be30abef776d17bf791c27b60b826849a05987e31826ba3` |
 | `examples/aadi-step-response.example.json` | `787d11fbcb737faac6ddcdbb9b1bea5709b887b50bf882b73b93ad063511fadd` |
@@ -27,6 +27,9 @@ Sentrapedia Oracle II extension approved by Gaffer including this local service)
 This capability-gated service extension preserves all legacy v1 case fields and required
 properties; it is not an identical copy of the Med Assist source. The request source
 SHA-256 before this extension was `84eba75c9810b794d1875dde77fc204dd5515b879056a8b47c60eef398e607dc`.
+It also adds the optional `demographics.weightKg` (0.3 to 400 kg, 2026-11-19, docs/FEATURE-IDEAS.md idea 5, chosen by
+Gaffer): input only, rendered into the case text for the model when present (Gaffer ruled on 2026-11-19 that the model
+may see it), never used by code to compute a dose; the evidence gate still checks every dose the model writes.
 The current hashes above describe the local service contracts. Med Assist adoption is
 a separate work item; do not modify its contract as part of this implementation.
 On 2026-10-11 Gaffer made TheOracle the single source of truth for Sentra knowledge: the

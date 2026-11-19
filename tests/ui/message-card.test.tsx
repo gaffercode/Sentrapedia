@@ -27,7 +27,9 @@ describe("MessageCard", () => {
   it("copies, prints and downloads a question answer", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
-    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    // Only this answer is marked for the printer (src/lib/print.ts).
+    let marked: boolean | undefined;
+    const print = vi.spyOn(window, "print").mockImplementation(() => { marked = document.querySelector(".assistant-message")?.hasAttribute("data-print-target"); });
     const h = handlers();
     render(<MessageCard message={a("question", "Jawaban.")} {...h}/>);
     fireEvent.click(screen.getByRole("button", { name: "Salin" }));
@@ -35,6 +37,7 @@ describe("MessageCard", () => {
     expect(writeText).toHaveBeenCalledWith("Jawaban.");
     fireEvent.click(screen.getByRole("button", { name: "Cetak" }));
     expect(print).toHaveBeenCalledTimes(1);
+    expect(marked).toBe(true);
     print.mockRestore();
   });
 

@@ -37,7 +37,8 @@
           "properties": {
             "ageYears": { "type": ["number", "null"], "minimum": 0 },
             "sex": { "enum": ["M", "F", "unknown"] },
-            "pregnant": { "type": "boolean" }
+            "pregnant": { "type": "boolean" },
+            "weightKg": { "type": "number", "minimum": 0.3, "maximum": 400 }
           }
         },
         "chiefComplaint": { "type": "string" },

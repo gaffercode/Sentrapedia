@@ -70,3 +70,8 @@ export const doseLines = entry => {
 
 export const list = value => (Array.isArray(value) ? value : [value]).map(clean).filter(Boolean);
 export { clean };
+
+// The SKDI competency level of an entry (docs/FEATURE-IDEAS.md idea 1). kompetensi is free text with several spellings
+// ("SKDI 4A", "SKDI 4A (KMK 1186/2022)") and some source labels that are not a level ("SKDI (daftar KKI)", "PNPK …"):
+// only a clean level is kept, anything else is null, never a guess.
+export const skdiLevel = text => /^SKDI\s+(1|2|3A|3B|4A|4B)(?![\w])/.exec(typeof text === "string" ? text.trim() : "")?.[1] ?? null;
