@@ -1,7 +1,8 @@
 // Workspace logic moved out of components/workspace.tsx (tech-debt row 37) so it can be tested without a browser.
 import type { ModeId } from "./drafts";
 import { freshReview, type PersonalTemplate, type ReviewItem } from "./workflow";
-import { loadWorkspace, newId, storageKey, unreadableKey, type Message, type Patient, type Settings, type Workspace } from "./workspace";
+import { initialWorkspace, loadWorkspace, newId, parseWorkspace, storageKey, unreadableKey, type Message, type Patient, type Settings, type Workspace } from "./workspace";
+import { openWorkspace, type WorkspaceLock } from "./workspace-crypto";
 import type { WorkspaceStorageKeys } from "./workspace-storage";
 
 export type Shortcut = "commands" | "search" | "new";
@@ -29,6 +30,19 @@ export function restoreFromStorage(storage: Pick<Storage, "getItem" | "setItem">
     unreadable: loaded.unreadable ?? storage.getItem(keys.unreadableKey),
     notice: loaded.unreadable ? "Workspace tersimpan tidak dapat dibaca. Datanya disimpan sebagai cadangan dan dapat diunduh dari menu Workspace." : null,
   };
+}
+
+/**
+ * Opens an encrypted saved workspace. A wrong passphrase throws and writes nothing. A workspace that decrypts but fails
+ * validation keeps its ciphertext (D4): the ciphertext, never a decrypted copy, goes to `unreadableKey` and is offered.
+ */
+export async function restoreEncrypted(storage: Pick<Storage, "getItem" | "setItem">, keys: WorkspaceStorageKeys, passphrase: string): Promise<{ workspace: Workspace; lock: WorkspaceLock; unreadable: string | null; notice: string | null }> {
+  const raw = storage.getItem(keys.storageKey) ?? "";
+  const { lock, plaintext } = await openWorkspace(passphrase, raw);
+  const workspace = parseWorkspace(plaintext);
+  if (workspace) return { workspace, lock, unreadable: storage.getItem(keys.unreadableKey), notice: null };
+  try { storage.setItem(keys.unreadableKey, raw); } catch { /* no room for a second copy: the ciphertext stays in place */ }
+  return { workspace: initialWorkspace, lock, unreadable: raw, notice: "Workspace terenkripsi tidak dapat dibaca. Datanya disimpan sebagai cadangan terenkripsi dan dapat diunduh dari menu Workspace." };
 }
 
 /** The user's text and its local draft, with the source the draft was made from; `fallback` records why the draft stood in for a failed analysis. */

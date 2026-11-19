@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Dispatch } from "react";
-import { type Workspace, type WorkspaceAction } from "../lib/workspace";
+import { initialWorkspace, type Workspace, type WorkspaceAction } from "../lib/workspace";
 import type { WorkspaceStorageKeys } from "../lib/workspace-storage";
-import { restoreFromStorage } from "../lib/workspace-session";
-import { saveLocalWorkspace } from "../lib/workflow";
+import { restoreEncrypted, restoreFromStorage } from "../lib/workspace-session";
+import { saveEncryptedWorkspace, saveLocalWorkspace } from "../lib/workflow";
+import { createLock, isEnvelope, sealWorkspace, WrongPassphrase, type WorkspaceLock } from "../lib/workspace-crypto";
 import { smooth } from "./smooth";
 
 export function useMediaQuery(query: string): boolean {
@@ -22,18 +23,45 @@ export function useToast() {
   return { toast, toastError, notify, dismiss };
 }
 
-// Restore and save stay in one hook so the restore effect always runs before the first save.
+/** D5: an unlocked encrypted workspace locks after 30 minutes without input. */
+export const idleLockMs = 30 * 60_000;
+const inputEvents = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
+
+// Restore and save stay in one hook so the restore effect always runs before the first save. An encrypted workspace
+// (docs/specs/2026-11-19-workspace-encryption-design.md) stays locked until unlock(); its key lives in memory only.
 export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<WorkspaceAction>, notify: (text: string, tone?: "error") => void, keys: WorkspaceStorageKeys) {
   const [storageError, setStorageError] = useState("");
   // Saved text that failed validation at load; kept (memory and unreadableKey) so it can be downloaded instead of lost.
   const [unreadable, setUnreadable] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [locked, setLocked] = useState(false);
+  const [encrypted, setEncrypted] = useState(false);
   const writable = useRef(false);
+  const lock = useRef<WorkspaceLock | null>(null);
+  // Every save takes a number; an encrypted save writes only if no newer save started while it was sealing.
+  const saveSeq = useRef(0);
+  const pendingSave = useRef<Promise<unknown>>(Promise.resolve());
+  const latest = useRef(state);
+  useEffect(() => { latest.current = state; });
   const { storageKey, unreadableKey } = keys;
+  // Another tab turned encryption on: this tab holds no key, so it locks instead of writing plain JSON over the envelope.
+  const lockOut = useCallback(() => {
+    saveSeq.current++;
+    lock.current = null;
+    writable.current = false;
+    setEncrypted(true);
+    setLocked(true);
+    dispatch({ type: "restore", state: initialWorkspace });
+  }, [dispatch]);
   useEffect(() => {
     let mounted = true;
     writable.current = false;
+    lock.current = null;
     try {
+      if (isEnvelope(localStorage.getItem(storageKey))) {
+        queueMicrotask(() => { if (!mounted) return; setEncrypted(true); setLocked(true); setRestoring(false); });
+        return () => { mounted = false; writable.current = false; };
+      }
       const restored = restoreFromStorage(localStorage, { storageKey, unreadableKey });
       writable.current = restored.notice === null;
       dispatch({ type: "restore", state: restored.workspace });
@@ -42,10 +70,83 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
     return () => { mounted = false; writable.current = false; };
   }, [notify, dispatch, storageKey, unreadableKey]);
   useEffect(() => {
-    if (restoring || !writable.current) return;
-    const error = saveLocalWorkspace(state, raw => localStorage.setItem(storageKey, raw));
-    queueMicrotask(() => setStorageError(error ?? ""));
-  }, [state, restoring, storageKey]);
+    if (restoring || locked || !writable.current) return;
+    const n = ++saveSeq.current;
+    const held = lock.current;
+    if (!held) {
+      let elsewhere = false;
+      try { elsewhere = isEnvelope(localStorage.getItem(storageKey)); } catch { /* storage unavailable: the write below reports it */ }
+      if (elsewhere) { queueMicrotask(lockOut); return; }
+      const error = saveLocalWorkspace(state, raw => localStorage.setItem(storageKey, raw));
+      queueMicrotask(() => setStorageError(error ?? ""));
+      return;
+    }
+    const saving = saveEncryptedWorkspace(state, raw => sealWorkspace(held, raw), sealed => localStorage.setItem(storageKey, sealed), () => n === saveSeq.current && lock.current === held);
+    pendingSave.current = saving;
+    void saving.then(error => { if (n === saveSeq.current) setStorageError(error ?? ""); });
+  }, [state, restoring, locked, encrypted, storageKey, lockOut]);
   const allowSave = () => { writable.current = true; };
-  return { storageError, unreadable, setUnreadable, restoring, allowSave };
+
+  const unlock = useCallback(async (passphrase: string): Promise<string | null> => {
+    try {
+      const restored = await restoreEncrypted(localStorage, { storageKey, unreadableKey }, passphrase);
+      lock.current = restored.lock;
+      writable.current = restored.notice === null;
+      dispatch({ type: "restore", state: restored.workspace });
+      setUnreadable(restored.unreadable);
+      if (restored.notice) notify(restored.notice, "error");
+      setLocked(false);
+      return null;
+    } catch (reason) { return reason instanceof WrongPassphrase ? "Passphrase salah." : "Workspace terenkripsi tidak dapat dibaca."; }
+  }, [dispatch, notify, storageKey, unreadableKey]);
+  // The pending save finishes first, then the key and the workspace leave memory.
+  const lockNow = useCallback(async () => {
+    await pendingSave.current.catch(() => undefined);
+    saveSeq.current++;
+    lock.current = null;
+    setLocked(true);
+    dispatch({ type: "restore", state: initialWorkspace });
+  }, [dispatch]);
+  // The envelope is written here, before the UI says "terenkripsi": a workspace that cannot be saved, or an envelope that
+  // does not fit in the browser's quota, leaves the plain workspace in place and reports why.
+  const enable = useCallback(async (passphrase: string) => {
+    if (!writable.current) throw new Error("Workspace ini belum dapat disimpan. Pulihkan backup atau hapus data lokal dulu.");
+    const next = await createLock(passphrase);
+    const sealed = await sealWorkspace(next, JSON.stringify(latest.current));
+    try { localStorage.setItem(storageKey, sealed); } catch { throw new Error("Workspace terlalu besar untuk dienkripsi di browser ini. Ekspor backup, lalu hapus encounter lama."); }
+    saveSeq.current++;
+    lock.current = next;
+    setEncrypted(true);
+  }, [storageKey]);
+  // Offered only while unlocked, so plain JSON is written only after a successful unlock.
+  // Plain JSON is written here, so the guard against another tab's envelope never mistakes this tab's own for one.
+  const disable = useCallback(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify(latest.current)); } catch { notify("Enkripsi belum dimatikan: workspace tidak dapat disimpan ke browser.", "error"); return; }
+    saveSeq.current++;
+    lock.current = null;
+    setEncrypted(false);
+  }, [notify, storageKey]);
+  // A forgotten passphrase: the encrypted copy is removed and the workspace starts again (the UI confirms first).
+  // Reloading drops everything the previous session left in component state (composer text, drafts, a running analysis).
+  const forget = useCallback(() => {
+    try { localStorage.removeItem(storageKey); } catch { /* storage unavailable: nothing to remove */ }
+    saveSeq.current++;
+    lock.current = null;
+    location.reload();
+  }, [storageKey]);
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => { if (event.key === storageKey && !lock.current && isEnvelope(event.newValue)) lockOut(); };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [storageKey, lockOut]);
+
+  useEffect(() => {
+    if (!encrypted || locked) return;
+    let timer = setTimeout(() => void lockNow(), idleLockMs);
+    const reset = () => { clearTimeout(timer); timer = setTimeout(() => void lockNow(), idleLockMs); };
+    for (const name of inputEvents) window.addEventListener(name, reset, { passive: true });
+    return () => { clearTimeout(timer); for (const name of inputEvents) window.removeEventListener(name, reset); };
+  }, [encrypted, locked, lockNow]);
+
+  return { storageError, unreadable, setUnreadable, restoring, allowSave, locked, unlock, forget, encryption: { enabled: encrypted, enable, disable, lockNow } };
 }

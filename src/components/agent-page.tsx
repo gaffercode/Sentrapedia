@@ -8,6 +8,7 @@ import { workspaceStorageKeys } from "../lib/workspace-storage";
 import { AgentSettings, type TheOracleIndexInfo } from "./agent-settings";
 import { SessionBoundary } from "./auth/session-boundary";
 import { useToast, useWorkspacePersistence } from "./workspace-hooks";
+import { WorkspaceUnlock } from "./workspace-unlock";
 
 // The /agent page shares the workspace record with the encounter page: same storage key per principal, same restore and
 // save hook, so a preference saved here is on the home page on the way back.
@@ -18,7 +19,9 @@ export function AgentPage({ userId, local, theoracle }: { userId: string; local:
 function AgentWorkspace({ principalId, theoracle, onSignOut, userButton }: { principalId: string; theoracle: TheOracleIndexInfo | null; onSignOut?: () => void; userButton?: ReactNode }) {
   const [state, dispatch] = useReducer(workspaceReducer, initialWorkspace);
   const { toast, toastError, notify, dismiss } = useToast();
-  const { restoring, storageError } = useWorkspacePersistence(state, dispatch, notify, workspaceStorageKeys(principalId));
+  const { restoring, storageError, locked, unlock, forget } = useWorkspacePersistence(state, dispatch, notify, workspaceStorageKeys(principalId));
+  // The settings live in the same encrypted record: nothing renders or saves until it is unlocked.
+  if (!restoring && locked) return <WorkspaceUnlock onUnlock={unlock} onForget={forget}/>;
   return <main className="agent-page">
     <header className="agent-header">
       <Link className="auth-back" href="/">Kembali ke encounter</Link>
