@@ -99,9 +99,11 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
       return null;
     } catch (reason) { return reason instanceof WrongPassphrase ? "Passphrase salah." : "Workspace terenkripsi tidak dapat dibaca."; }
   }, [dispatch, notify, storageKey, unreadableKey]);
-  // The pending save finishes first, then the key and the workspace leave memory.
+  // Every pending save finishes first, including one an edit started during the wait, then the key and the workspace
+  // leave memory.
   const lockNow = useCallback(async () => {
-    await pendingSave.current.catch(() => undefined);
+    let waited: Promise<unknown>;
+    do { waited = pendingSave.current; await waited.catch(() => undefined); } while (waited !== pendingSave.current);
     saveSeq.current++;
     lock.current = null;
     setLocked(true);

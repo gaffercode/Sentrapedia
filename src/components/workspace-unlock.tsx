@@ -5,7 +5,7 @@ import { PixelLoader } from "./pixel-loader";
 
 // The encrypted workspace stays closed until its passphrase is given (docs/specs/2026-11-19-workspace-encryption-design.md).
 // Nothing of the workspace renders here. A forgotten passphrase cannot be recovered (D2), so the only way on is to remove
-// the encrypted copy after an explicit confirmation.
+// the encrypted copy after an explicit confirmation, and never while an unlock is running.
 export function WorkspaceUnlock({ onUnlock, onForget }: { onUnlock: (passphrase: string) => Promise<string | null>; onForget: () => void }) {
   const [passphrase, setPassphrase] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +29,7 @@ export function WorkspaceUnlock({ onUnlock, onForget }: { onUnlock: (passphrase:
     {error && <p className="form-warning" role="alert">{error}</p>}
     <p className="panel-caption">Lupa passphrase? Workspace terenkripsi tidak dapat dipulihkan.</p>
     {confirmForget
-      ? <div className="form-warning"><p>Hapus permanen workspace terenkripsi di browser ini? Tindakan ini tidak dapat dibatalkan.</p><button type="button" className="button danger" onClick={onForget}>Hapus permanen</button><button type="button" className="button" onClick={() => setConfirmForget(false)}>Batal</button></div>
-      : <button type="button" className="button danger-ghost" onClick={() => setConfirmForget(true)}>Hapus workspace terenkripsi</button>}
+      ? <div className="form-warning"><p>Hapus permanen workspace terenkripsi di browser ini? Tindakan ini tidak dapat dibatalkan.</p><button type="button" className="button danger" disabled={busy} onClick={onForget}>Hapus permanen</button><button type="button" className="button" onClick={() => setConfirmForget(false)}>Batal</button></div>
+      : <button type="button" className="button danger-ghost" disabled={busy} onClick={() => setConfirmForget(true)}>Hapus workspace terenkripsi</button>}
   </main>;
 }

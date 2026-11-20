@@ -597,6 +597,12 @@ describe("SKDI level beside AADI's disposition", () => {
     expect(section(referDraft, referralSectionTitle)).not.toContain("Kompetensi SKDI");
     expect(section(referDraft, "2. Skrining kegawatan")).toContain(skdi);
   });
+  it("names no cannot-miss record, even when no likely or alternative record exists", () => {
+    // A cannot-miss diagnosis is one to rule out, not the working diagnosis; its level beside the disposition would read
+    // as the level of the case.
+    const onlyCannotMiss = withDifferential({ likely: [], alternatives: [], cannotMiss: likely });
+    expect(section(aadiMessage(onlyCannotMiss).content, "2. Skrining kegawatan")).not.toContain("Kompetensi SKDI");
+  });
   it("adds nothing when the primary record has no level", () => {
     const none = withDifferential({ likely: [{ icd10: "U97", label: "Penyakit sintetis tanpa level", confidenceTier: "low" }], alternatives: [], cannotMiss: [] });
     expect(section(aadiMessage(none).content, "2. Skrining kegawatan")).not.toContain("Kompetensi SKDI");

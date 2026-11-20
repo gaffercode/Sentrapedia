@@ -168,6 +168,11 @@ describe("sidebar feedback", () => {
     expect(onToast).toHaveBeenCalledWith("Masukan belum terkirim: penyimpanan belum aktif di instance ini.", "error");
     expect(box.value).toBe("Tombol cetak membantu.");
   });
+  it("asks to try again when the store failed to save, and keeps the text", async () => {
+    const { onToast, box } = await send(503, { status: "error", error: { code: "FEEDBACK_FAILED" } });
+    expect(onToast).toHaveBeenCalledWith("Masukan belum terkirim. Coba kembali.", "error");
+    expect(box.value).toBe("Tombol cetak membantu.");
+  });
   it("asks to remove identity, and keeps the text", async () => {
     const { onToast, box } = await send(400, { status: "error", error: { code: "IDENTITY" } }, "pasien Tn. Budi");
     expect(onToast).toHaveBeenCalledWith("Masukan memuat pola identitas. Hapus nama, nomor identitas, kontak dan alamat.", "error");

@@ -13,6 +13,11 @@ const therapyGrounding = bundle([["P001-001", "Nama keluaran uji: parasetamol 50
 const analysisFixture: AadiAnalysis = { case: caseData, result, traceId: "synthetic-trace", createdAt: "2026-10-09T00:00:00Z", grounding: bundle([["P002-001", "Common cold ditangani simtomatik"]]), therapyGrounding };
 
 describe("analysisView", () => {
+  it("lists the body weight with the patient facts when the case gives one, the way the draft does", () => {
+    const weighed = { ...analysisFixture, case: { ...caseData, demographics: { ...caseData.demographics, weightKg: 12.5 } } };
+    expect(analysisView(aadiMessage(weighed))!.discussion.facts).toContain("Pasien: 30 tahun · Laki-laki · Berat badan 12.5 kg");
+    expect(analysisView(aadiMessage(analysisFixture))!.discussion.facts).toContain("Pasien: 30 tahun · Laki-laki");
+  });
   it("builds three tiers, next steps and gated therapy from a stored answer", () => {
     const view = analysisView(aadiMessage(analysisFixture))!;
     expect(view).not.toBeNull();

@@ -198,7 +198,8 @@ export function aadiDraft(result: AadiResult, traceId: string, createdAt: string
   // The records /api/aadi attached for these codes (src/lib/theoracle.ts); a draft saved before 2026-11-18 has none.
   const references = recordsForCodes(catalogueRecords(), listedCodes);
   // Narratives follow the most likely group that has database records: likely, then alternatives, then cannotMiss.
-  const primary = (["likely", "alternatives", "cannotMiss"] as const).map(key => references.filter(d => result.differential[key].some(item => referenceIncludes(d.kode, item.icd10.toUpperCase())))).find(group => group.length) ?? [];
+  const primaryGroup = (["likely", "alternatives", "cannotMiss"] as const).map(key => ({ key, records: references.filter(d => result.differential[key].some(item => referenceIncludes(d.kode, item.icd10.toUpperCase()))) })).find(group => group.records.length);
+  const primary = primaryGroup?.records ?? [];
   const others = references.filter(d => !primary.includes(d));
   const narrative = (diseases: Disease[], fields: [label: string, name: "definisi" | "gejala" | "diagnosis" | "terapi" | "rujukan"][]) => diseases.map(d => [`### ${d.nama} (${d.kode})`, ...fields.map(([label, name]) => field(label, name === "gejala" ? d.gejala.map(item => `- ${item}`).join("\n") : d[name]))].join("\n\n")).join("\n\n");
   const tests = actions(["test"]);
@@ -208,7 +209,8 @@ export function aadiDraft(result: AadiResult, traceId: string, createdAt: string
   const disposition = dispositionText(result);
   // The catalogue's SKDI level for the primary records, beside the disposition and never in its place (src/lib/skdi.ts).
   // Part 2 only: "Draft Rujukan" goes to the receiving facility, where a level could read as a reason to refuse.
-  const skdi = join(skdiLines(primary));
+  // Never for a cannotMiss record: a diagnosis to rule out is not the working one, so its level is not the case's.
+  const skdi = primaryGroup?.key === "cannotMiss" ? "" : join(skdiLines(primary));
 
   const vitalItems = caseData ? Object.entries(caseData.vitals).map(([key, value]) => `${vitalLabels[key] ?? key}: ${value}`) : [];
   const resultItems = caseData?.results.map(r => `${r.name}: ${r.value}${r.unit ? ` ${r.unit}` : ""}${r.flag ? ` (${r.flag})` : ""}`) ?? [];

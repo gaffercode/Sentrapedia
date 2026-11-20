@@ -65,7 +65,7 @@ function therapyView(result: AadiResult, gate: EvidenceGateReport | undefined): 
 
 function caseFacts(data: CaseState): string[] {
   const { history, notes } = caseHistory(data);
-  const demographics = [data.demographics.ageYears == null ? "" : `${data.demographics.ageYears} tahun`, data.demographics.sex === "M" ? "Laki-laki" : data.demographics.sex === "F" ? "Perempuan" : "", data.demographics.pregnant === undefined ? "" : `Hamil: ${data.demographics.pregnant ? "Ya" : "Tidak"}`].filter(Boolean).join(" · ");
+  const demographics = [data.demographics.ageYears == null ? "" : `${data.demographics.ageYears} tahun`, data.demographics.sex === "M" ? "Laki-laki" : data.demographics.sex === "F" ? "Perempuan" : "", data.demographics.pregnant === undefined ? "" : `Hamil: ${data.demographics.pregnant ? "Ya" : "Tidak"}`, data.demographics.weightKg === undefined ? "" : `Berat badan ${data.demographics.weightKg} kg`].filter(Boolean).join(" · ");
   const vitals = Object.entries(data.vitals).map(([k, v]) => `${vitalLabels[k] ?? k}: ${v}`).join("; ");
   const results = data.results.map((r) => `${r.name}: ${r.value}${r.unit ? ` ${r.unit}` : ""}${r.flag ? ` (${r.flag})` : ""}`).join("; ");
   const qa = (data.anamnesis.qa ?? []).map((item) => `${item.question.trim()}: ${item.answer.trim()}`);

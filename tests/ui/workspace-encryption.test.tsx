@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useReducer } from "react";
 import { initialWorkspace, workspaceReducer, type Workspace } from "../../src/lib/workspace";
-import { createLock, isEnvelope, sealWorkspace } from "../../src/lib/workspace-crypto";
+import { createLock, isEnvelope, openWorkspace, sealWorkspace } from "../../src/lib/workspace-crypto";
 import { useWorkspacePersistence } from "../../src/components/workspace-hooks";
 import { WorkspaceUnlock } from "../../src/components/workspace-unlock";
 import { AccountDialog } from "../../src/components/workspace-dialogs";
@@ -23,7 +23,7 @@ function Harness() {
   useEffect(() => { expose(persistence); });
   if (persistence.restoring) return <p>Membuka…</p>;
   if (persistence.locked) return <WorkspaceUnlock onUnlock={persistence.unlock} onForget={persistence.forget}/>;
-  return <><p>{state.patients.map(p => p.name).join(", ")}</p><button onClick={() => dispatch({ type: "settings.save", settings: { ...state.settings, instructions: "ubah" } })}>Ubah</button></>;
+  return <><p>{state.patients.map(p => p.name).join(", ")}</p><button onClick={() => dispatch({ type: "settings.save", settings: { ...state.settings, instructions: `${state.settings.instructions}x` } })}>Ubah</button></>;
 }
 const saved = () => localStorage.getItem(keys.storageKey);
 
@@ -57,6 +57,20 @@ describe("unlock screen", () => {
     await waitFor(() => expect(saved()).not.toBe(sealed));
     expect(isEnvelope(saved())).toBe(true);
   });
+  it("offers no removal while an unlock is running", async () => {
+    let finish: (value: string | null) => void = () => undefined;
+    const onForget = vi.fn();
+    render(<WorkspaceUnlock onUnlock={() => new Promise(resolve => { finish = resolve; })} onForget={onForget}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Hapus workspace terenkripsi" }));
+    fireEvent.change(screen.getByLabelText("Passphrase"), { target: { value: passphrase } });
+    fireEvent.click(screen.getByRole("button", { name: "Buka workspace" }));
+    const remove = screen.getByRole("button", { name: "Hapus permanen" }) as HTMLButtonElement;
+    expect(remove.disabled).toBe(true);
+    fireEvent.click(remove);
+    expect(onForget).not.toHaveBeenCalled();
+    await act(async () => { finish("Passphrase salah."); });
+    expect((screen.getByRole("button", { name: "Hapus permanen" }) as HTMLButtonElement).disabled).toBe(false);
+  });
   it("removes the encrypted workspace only after an explicit confirmation", async () => {
     localStorage.setItem(keys.storageKey, await sealWorkspace(await createLock(passphrase, 100_000), JSON.stringify(named)));
     render(<Harness/>);
@@ -84,6 +98,21 @@ describe("turning encryption on and off", () => {
     await act(() => api!.encryption.lockNow());
     expect(await screen.findByRole("heading", { name: "Workspace terkunci" })).toBeTruthy();
     expect(screen.queryByText(/Pasien Rahasia/)).toBeNull();
+  });
+  it("keeps an edit made while locking waits for the save before it", async () => {
+    localStorage.setItem(keys.storageKey, JSON.stringify(named));
+    render(<Harness/>);
+    await screen.findByText("Pasien Rahasia");
+    await act(() => api!.encryption.enable(passphrase));
+    await waitFor(() => expect(isEnvelope(saved())).toBe(true));
+    const before = JSON.parse((await openWorkspace(passphrase, saved()!)).plaintext).settings.instructions as string;
+    fireEvent.click(screen.getByRole("button", { name: "Ubah" }));
+    let locking: Promise<void> = Promise.resolve();
+    act(() => { locking = api!.encryption.lockNow(); });
+    fireEvent.click(screen.getByRole("button", { name: "Ubah" }));
+    await act(() => locking);
+    expect(await screen.findByRole("heading", { name: "Workspace terkunci" })).toBeTruthy();
+    expect(JSON.parse((await openWorkspace(passphrase, saved()!)).plaintext).settings.instructions).toBe(`${before}xx`);
   });
   it("locks after 30 minutes without input (D5)", async () => {
     localStorage.setItem(keys.storageKey, JSON.stringify(named));
