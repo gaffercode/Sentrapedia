@@ -37,7 +37,7 @@ export function createFeedbackHandler(deps: Dependencies) {
     if (parsed === "identity") return errorResponse(400, "IDENTITY", "Masukan memuat pola identitas. Hapus nama, nomor identitas, kontak dan alamat.");
     if (!parsed) return errorResponse(400, "INPUT", "Masukan tidak valid. Muat ulang halaman dan coba kembali.");
     try { await deps.store.add(principal, parsed); }
-    catch { return errorResponse(503, "FEEDBACK_UNAVAILABLE", "Masukan belum tersimpan. Coba kembali."); }
+    catch { return errorResponse(503, "FEEDBACK_FAILED", "Masukan belum tersimpan. Coba kembali."); }
     return Response.json({ status: "ok" }, { headers: { "Cache-Control": "no-store" } });
   };
 }

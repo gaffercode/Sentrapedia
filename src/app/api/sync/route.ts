@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 
 const maxBodyBytes = 1_000_000;
 const unavailable = () => errorResponse(503, "SYNC_UNAVAILABLE", "Sinkronisasi server belum aktif di instance ini.");
+// A store that fails mid-call is not "not active": the client then says the sync failed and to try again.
+const failed = () => errorResponse(500, "SYNC_FAILED", "Sinkronisasi gagal. Coba kembali.");
 const badInput = () => errorResponse(400, "INPUT", "Data sinkronisasi tidak valid. Muat ulang halaman dan coba kembali.");
 
 // The principal always comes from the verified session, never from the request body: a client-supplied id would
@@ -31,7 +33,7 @@ export async function GET() {
     return Response.json({ status: "ok", documents, templates }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     // Local state stays authoritative, so a failed pull is reported rather than raised.
-    return unavailable();
+    return failed();
   }
 }
 
@@ -58,6 +60,6 @@ export async function POST(request: Request) {
     const templateOutcome = await pushTemplates(resolved.principal, templates);
     return Response.json({ status: "ok", ...outcome, templates: templateOutcome }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    return unavailable();
+    return failed();
   }
 }

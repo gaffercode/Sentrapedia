@@ -38,8 +38,28 @@ describe("printDocument", () => {
 
   it("leaves no marker after printing", () => {
     document.body.innerHTML = `<article id="a"></article>`;
+    vi.spyOn(window, "print").mockImplementation(() => { window.dispatchEvent(new Event("afterprint")); });
+    printDocument(document.getElementById("a"), "draft");
+    expect(markers()).toBe(0);
+  });
+
+  it("keeps the markers until afterprint when print() returns before the dialog closes (iOS)", () => {
+    document.body.innerHTML = `<article id="a"></article>`;
     vi.spyOn(window, "print").mockImplementation(() => {});
     printDocument(document.getElementById("a"), "draft");
+    expect(markers()).toBe(2);
+    window.dispatchEvent(new Event("afterprint"));
+    expect(markers()).toBe(0);
+  });
+
+  it("clears a previous document's markers when a second print starts first", () => {
+    document.body.innerHTML = `<article id="a"></article><article id="b"></article>`;
+    vi.spyOn(window, "print").mockImplementation(() => {});
+    printDocument(document.getElementById("a"), "draft");
+    printDocument(document.getElementById("b"), "final");
+    expect(document.getElementById("a")?.hasAttribute("data-print-target")).toBe(false);
+    expect(document.getElementById("b")?.getAttribute("data-print-status")).toBe("Status: Final");
+    window.dispatchEvent(new Event("afterprint"));
     expect(markers()).toBe(0);
   });
 

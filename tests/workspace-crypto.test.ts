@@ -38,7 +38,7 @@ describe("workspace crypto", () => {
     expect(isEnvelope(plain)).toBe(false);
     expect(isEnvelope(null)).toBe(false);
     expect(isEnvelope("not json")).toBe(false);
-    for (const bad of [{ ...sealed, iter: 1 }, { ...sealed, iter: 50_000_000 }, { ...sealed, salt: "***" }, { ...sealed, ct: undefined }]) {
+    for (const bad of [{ ...sealed, iter: 1 }, { ...sealed, iter: 50_000_000 }, { ...sealed, salt: "***" }, { ...sealed, ct: undefined }, { ...sealed, ct: `${sealed.ct}A` }, { ...sealed, ct: "AAAAA" }]) {
       expect(isEnvelope(JSON.stringify(bad))).toBe(false);
       await expect(openWorkspace("passphrase-uji-1", JSON.stringify(bad))).rejects.toBeInstanceOf(BadEnvelope);
     }

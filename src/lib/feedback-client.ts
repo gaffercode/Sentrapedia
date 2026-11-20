@@ -12,9 +12,10 @@ export async function sendWorkspaceFeedback(note: string): Promise<FeedbackOutco
   try {
     const response = await fetch("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ note }), cache: "no-store" });
     if (response.ok) return "sent";
-    if (response.status === 503) return "unavailable";
-    // Error answers use the capsule's envelope, { status: "error", error: { code, message } } (auth/access.ts).
+    // Error answers use the capsule's envelope, { status: "error", error: { code, message } } (auth/access.ts). A 503
+    // is "not active" only when the instance has no store; a store that failed to save asks for another try.
     const body = await response.json().catch(() => ({})) as { error?: { code?: unknown } };
-    return body.error?.code === "IDENTITY" ? "identity" : "failed";
+    if (body.error?.code === "IDENTITY") return "identity";
+    return response.status === 503 && body.error?.code !== "FEEDBACK_FAILED" ? "unavailable" : "failed";
   } catch { return "failed"; }
 }

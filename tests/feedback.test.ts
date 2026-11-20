@@ -54,6 +54,8 @@ describe("feedback handler", () => {
     expect((await setup().handler(request({ note: "x" }, "text/plain"))).status).toBe(400);
     const failed = await setup({ fail: true }).handler(request({ note: "x" }));
     expect(failed.status).toBe(503);
-    expect(await failed.text()).not.toContain("private database detail");
+    const failedText = await failed.text();
+    expect(JSON.parse(failedText).error.code).toBe("FEEDBACK_FAILED");
+    expect(failedText).not.toContain("private database detail");
   });
 });

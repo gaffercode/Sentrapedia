@@ -459,5 +459,5 @@ test("dose lines render konteks and kutipan, drop non-drug rows and merge identi
 test("skdiLevel keeps a clean SKDI level and nothing else", { skip: !existsSync("theoracle/ssot/sentrapedia-knowledge-ssot.json") && "the module reads the private knowledge SSOT" }, async () => {
   const { skdiLevel } = await import(pathToFileURL(resolve("scripts/knowledge-ssot.mjs")).href);
   for (const [text, level] of [["SKDI 4A (KMK 1186/2022)", "4A"], ["SKDI 4A", "4A"], ["SKDI 3B (KMK 1186/2022)", "3B"], ["SKDI 3A (KMK 1186/2022)", "3A"], ["SKDI 4A (PPK FKTP)", "4A"], ["SKDI 4A (Permenkes 5/2014)", "4A"]]) assert.equal(skdiLevel(text), level, text);
-  for (const text of ["SKDI (daftar KKI)", "PNPK (pedoman nasional pelayanan kedokteran)", null, undefined, "", "SKDI 5"]) assert.equal(skdiLevel(text), null, String(text));
+  for (const text of ["SKDI (daftar KKI)", "PNPK (pedoman nasional pelayanan kedokteran)", null, undefined, "", "SKDI 5", "SKDI 3A/3B", "SKDI 3A-3B (KMK 1186/2022)", "SKDI 4A, 3B"]) assert.equal(skdiLevel(text), null, String(text));
 });

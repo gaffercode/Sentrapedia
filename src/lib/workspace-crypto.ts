@@ -12,6 +12,7 @@ type Envelope = { v: 1; kdf: "PBKDF2-SHA256"; iter: number; salt: string; iv: st
 export class WrongPassphrase extends Error { constructor() { super("Passphrase salah."); } }
 export class BadEnvelope extends Error { constructor() { super("Workspace terenkripsi tidak dapat dibaca."); } }
 
+// btoa always pads to a multiple of 4; any other length is a damaged envelope, not a wrong passphrase.
 const base64 = /^[A-Za-z0-9+/]+={0,2}$/;
 function toBase64(bytes: Uint8Array): string {
   let text = "";
@@ -30,7 +31,7 @@ function parseEnvelope(raw: string | null): Envelope | null {
   try { value = JSON.parse(raw); } catch { return null; }
   if (!value || typeof value !== "object") return null;
   const e = value as Record<string, unknown>;
-  const b64 = (v: unknown, length?: number) => typeof v === "string" && base64.test(v) && (length === undefined || fromBase64(v).length === length);
+  const b64 = (v: unknown, length?: number) => typeof v === "string" && v.length % 4 === 0 && base64.test(v) && (length === undefined || fromBase64(v).length === length);
   return e.v === 1 && e.kdf === "PBKDF2-SHA256" && Number.isInteger(e.iter) && (e.iter as number) >= minIterations && (e.iter as number) <= maxIterations
     && b64(e.salt, 16) && b64(e.iv, 12) && b64(e.ct) ? e as Envelope : null;
 }
