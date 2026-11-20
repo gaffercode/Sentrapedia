@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import BetaPolicy from "../../src/app/beta-policy/page";
 import { AuthFrame, AccessNotice } from "../../src/components/auth/auth-frame";
 
 afterEach(cleanup);
@@ -14,6 +15,13 @@ describe("admission presentation", () => {
     // One heading, so the page states its purpose once.
     expect(container.querySelectorAll("h1, h2, h3")).toHaveLength(1);
     expect(screen.getByRole("link", { name: /Kembali ke website/i }).getAttribute("href")).toBe("https://sentrapedia.vercel.app/");
+  });
+  it("serves both beta disclosures and stable in-page destinations before sign-in", () => {
+    render(<BetaPolicy/>);
+    expect(screen.getByRole("heading", { name: "Ketentuan beta" }).id).toBe("ketentuan");
+    expect(screen.getByRole("heading", { name: "Kebijakan privasi workspace" }).id).toBe("privasi");
+    expect(screen.getByText(/Google Gemini/)).toBeTruthy();
+    expect(screen.getByText(/disimpan di Clerk/)).toBeTruthy();
   });
   it("sets the decorative cabinet after the form, hidden from assistive technology", () => {
     const { container } = render(<AuthFrame title="Masuk ke workspace"><p>Isi formulir.</p></AuthFrame>);

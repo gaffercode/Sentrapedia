@@ -37,7 +37,8 @@ describe("beta acknowledgement", () => {
     expect(screen.getByRole("button", { name: "Setuju dan buka workspace" }).hasAttribute("disabled")).toBe(true);
     fireEvent.submit(check.closest("form")!);
     expect(send).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "Ketentuan beta" }).getAttribute("href")).toBe("https://sentrapedia.vercel.app/ketentuan/");
+    expect(screen.getByRole("link", { name: "Ketentuan beta" }).getAttribute("href")).toBe("/beta-policy#ketentuan");
+    expect(screen.getByRole("link", { name: "Kebijakan privasi" }).getAttribute("href")).toBe("/beta-policy#privasi");
   });
   it("submits only explicit policy acceptance and navigates to the fixed workspace destination", async () => {
     const send = vi.fn(async () => Response.json({ status: "ok" })); vi.stubGlobal("fetch", send);
@@ -49,7 +50,7 @@ describe("beta acknowledgement", () => {
     const [url, options] = send.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("/api/onboarding/consent");
     expect(options.method).toBe("POST");
-    expect(JSON.parse(options.body as string)).toEqual({ version: "sentrapedia-beta-v2", accepted: true, profile: { profession: "Dokter", registration: "STR-0001-TEST", practice: "Puskesmas Contoh" } });
+    expect(JSON.parse(options.body as string)).toEqual({ version: "sentrapedia-beta-v3", accepted: true, profile: { profession: "Dokter", registration: "STR-0001-TEST", practice: "Puskesmas Contoh" } });
     expect(external.replace).toHaveBeenCalledTimes(1);
   });
   it("shows pending and generic failure states, keeping the acknowledgement available for retry", async () => {

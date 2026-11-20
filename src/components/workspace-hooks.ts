@@ -25,6 +25,14 @@ export function useToast() {
 
 /** D5: an unlocked encrypted workspace locks after 30 minutes without input. */
 export const idleLockMs = 30 * 60_000;
+const conflictMessage = "Workspace berubah di tab lain. Perubahan di tab ini belum tersimpan. Ekspor backup dari profil workspace sebelum memuat ulang.";
+class WorkspaceChanged extends Error {}
+
+async function withStorageLock(key: string, work: () => void | Promise<void>): Promise<void> {
+  if (navigator.locks) await navigator.locks.request(key, work);
+  else await work();
+}
+
 const inputEvents = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
 
 // Restore and save stay in one hook so the restore effect always runs before the first save. An encrypted workspace
@@ -37,6 +45,8 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
   const [locked, setLocked] = useState(false);
   const [encrypted, setEncrypted] = useState(false);
   const writable = useRef(false);
+  const lastStored = useRef<string | null>(null);
+  const lastSaved = useRef<Workspace | null>(null);
   const lock = useRef<WorkspaceLock | null>(null);
   // Every save takes a number; an encrypted save writes only if no newer save started while it was sealing.
   const saveSeq = useRef(0);
@@ -45,7 +55,9 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
   useEffect(() => { latest.current = state; });
   const { storageKey, unreadableKey } = keys;
   // Another tab turned encryption on: this tab holds no key, so it locks instead of writing plain JSON over the envelope.
-  const lockOut = useCallback(() => {
+  const lockOut = useCallback((raw: string | null) => {
+    lastStored.current = raw;
+    lastSaved.current = null;
     saveSeq.current++;
     lock.current = null;
     writable.current = false;
@@ -58,38 +70,60 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
     writable.current = false;
     lock.current = null;
     try {
-      if (isEnvelope(localStorage.getItem(storageKey))) {
+      lastStored.current = localStorage.getItem(storageKey);
+      if (isEnvelope(lastStored.current)) {
         queueMicrotask(() => { if (!mounted) return; setEncrypted(true); setLocked(true); setRestoring(false); });
         return () => { mounted = false; writable.current = false; };
       }
       const restored = restoreFromStorage(localStorage, { storageKey, unreadableKey });
       writable.current = restored.notice === null;
+      lastSaved.current = lastStored.current === null ? null : restored.workspace;
       dispatch({ type: "restore", state: restored.workspace });
       queueMicrotask(() => { if (!mounted) return; setUnreadable(restored.unreadable); if (restored.notice) notify(restored.notice, "error"); setRestoring(false); });
     } catch { queueMicrotask(() => { if (!mounted) return; notify("Penyimpanan browser tidak tersedia. Perubahan hanya bertahan selama sesi ini.", "error"); setRestoring(false); }); }
     return () => { mounted = false; writable.current = false; };
   }, [notify, dispatch, storageKey, unreadableKey]);
+  const writeIfCurrent = useCallback((raw: string) => {
+    if (localStorage.getItem(storageKey) !== lastStored.current) throw new WorkspaceChanged(conflictMessage);
+    localStorage.setItem(storageKey, raw);
+    lastStored.current = raw;
+  }, [storageKey]);
+
   useEffect(() => {
-    if (restoring || locked || !writable.current) return;
+    if (restoring || locked || !writable.current || state === lastSaved.current) return;
     const n = ++saveSeq.current;
     const held = lock.current;
-    if (!held) {
-      let elsewhere = false;
-      try { elsewhere = isEnvelope(localStorage.getItem(storageKey)); } catch { /* storage unavailable: the write below reports it */ }
-      if (elsewhere) { queueMicrotask(lockOut); return; }
-      const error = saveLocalWorkspace(state, raw => localStorage.setItem(storageKey, raw));
-      queueMicrotask(() => setStorageError(error ?? ""));
-      return;
-    }
-    const saving = saveEncryptedWorkspace(state, raw => sealWorkspace(held, raw), sealed => localStorage.setItem(storageKey, sealed), () => n === saveSeq.current && lock.current === held);
+    const isLatest = () => n === saveSeq.current && lock.current === held;
+    const saving = withStorageLock(storageKey, async () => {
+      if (!isLatest()) return;
+      if (!held) {
+        let current: string | null = null;
+        try { current = localStorage.getItem(storageKey); } catch { /* the write below reports unavailable storage */ }
+        if (isEnvelope(current)) { queueMicrotask(() => lockOut(current)); return; }
+      }
+      let conflict = false;
+      const write = (raw: string) => {
+        try { writeIfCurrent(raw); lastSaved.current = state; }
+        catch (error) { conflict = error instanceof WorkspaceChanged; throw error; }
+      };
+      const error = held
+        ? await saveEncryptedWorkspace(state, raw => sealWorkspace(held, raw), write, isLatest)
+        : saveLocalWorkspace(state, write);
+      queueMicrotask(() => { if (isLatest()) setStorageError(conflict ? conflictMessage : error ?? ""); });
+    });
     pendingSave.current = saving;
-    void saving.then(error => { if (n === saveSeq.current) setStorageError(error ?? ""); });
-  }, [state, restoring, locked, encrypted, storageKey, lockOut]);
+    void saving.catch(() => { if (isLatest()) setStorageError("Perubahan belum tersimpan. Ekspor backup dari profil workspace."); });
+  }, [state, restoring, locked, encrypted, storageKey, lockOut, writeIfCurrent]);
   const allowSave = () => { writable.current = true; };
 
   const unlock = useCallback(async (passphrase: string): Promise<string | null> => {
     try {
+      const raw = localStorage.getItem(storageKey);
       const restored = await restoreEncrypted(localStorage, { storageKey, unreadableKey }, passphrase);
+      if (localStorage.getItem(storageKey) !== raw) return conflictMessage;
+      lastStored.current = raw;
+      lastSaved.current = restored.workspace;
+      setStorageError("");
       lock.current = restored.lock;
       writable.current = restored.notice === null;
       dispatch({ type: "restore", state: restored.workspace });
@@ -115,29 +149,35 @@ export function useWorkspacePersistence(state: Workspace, dispatch: Dispatch<Wor
     if (!writable.current) throw new Error("Workspace ini belum dapat disimpan. Pulihkan backup atau hapus data lokal dulu.");
     const next = await createLock(passphrase);
     const sealed = await sealWorkspace(next, JSON.stringify(latest.current));
-    try { localStorage.setItem(storageKey, sealed); } catch { throw new Error("Workspace terlalu besar untuk dienkripsi di browser ini. Ekspor backup, lalu hapus encounter lama."); }
-    saveSeq.current++;
-    lock.current = next;
-    setEncrypted(true);
-  }, [storageKey]);
+    await withStorageLock(storageKey, () => {
+      try { writeIfCurrent(sealed); } catch (error) {
+        if (error instanceof WorkspaceChanged) throw error;
+        throw new Error("Workspace terlalu besar untuk dienkripsi di browser ini. Ekspor backup, lalu hapus encounter lama.");
+      }
+      saveSeq.current++;
+      lock.current = next;
+      setEncrypted(true);
+    });
+  }, [storageKey, writeIfCurrent]);
   // Offered only while unlocked, so plain JSON is written only after a successful unlock.
   // Plain JSON is written here, so the guard against another tab's envelope never mistakes this tab's own for one.
   const disable = useCallback(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(latest.current)); } catch { notify("Enkripsi belum dimatikan: workspace tidak dapat disimpan ke browser.", "error"); return; }
-    saveSeq.current++;
-    lock.current = null;
-    setEncrypted(false);
-  }, [notify, storageKey]);
+    void withStorageLock(storageKey, () => {
+      writeIfCurrent(JSON.stringify(latest.current));
+      saveSeq.current++;
+      lock.current = null;
+      setEncrypted(false);
+    }).catch(error => notify(error instanceof WorkspaceChanged ? conflictMessage : "Enkripsi belum dimatikan: workspace tidak dapat disimpan ke browser.", "error"));
+  }, [notify, storageKey, writeIfCurrent]);
   // A forgotten passphrase: the encrypted copy is removed and the workspace starts again (the UI confirms first).
   // Reloading drops everything the previous session left in component state (composer text, drafts, a running analysis).
   const forget = useCallback(() => {
-    try { localStorage.removeItem(storageKey); } catch { /* storage unavailable: nothing to remove */ }
-    saveSeq.current++;
-    lock.current = null;
-    location.reload();
+    void withStorageLock(storageKey, () => {
+      if (localStorage.getItem(storageKey) === lastStored.current) localStorage.removeItem(storageKey);
+    }).finally(() => location.reload()).catch(() => undefined);
   }, [storageKey]);
   useEffect(() => {
-    const onStorage = (event: StorageEvent) => { if (event.key === storageKey && !lock.current && isEnvelope(event.newValue)) lockOut(); };
+    const onStorage = (event: StorageEvent) => { if (event.key === storageKey && !lock.current && isEnvelope(event.newValue)) lockOut(event.newValue); };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [storageKey, lockOut]);

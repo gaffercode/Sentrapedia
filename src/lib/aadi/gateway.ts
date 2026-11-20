@@ -1,4 +1,4 @@
-import { validCase, validResult, type AadiResult } from "./contract";
+import { containsIdentity, validCase, validResult, type AadiResult } from "./contract";
 import { applyTherapyGate, gateEvidence, type EvidenceGateReport } from "../theoracle-evidence-gate";
 import { recordsForCodes, type Disease } from "../theoracle";
 import { aadiServiceVersion } from "./model-profile";
@@ -38,6 +38,11 @@ async function boundedBody(response: Response | Request, limit: number): Promise
   catch (error) { await reader.cancel().catch(() => undefined); throw error; }
   const bytes = new Uint8Array(size); let offset = 0; for (const part of parts) { bytes.set(part, offset); offset += part.length; }
   return new TextDecoder().decode(bytes);
+}
+// Inspect field values separately so JSON syntax does not hide or create identifier patterns.
+function caseContainsIdentity(value: unknown): boolean {
+  if (typeof value === "string" || typeof value === "number") return containsIdentity(String(value));
+  return value !== null && typeof value === "object" && Object.values(value).some(caseContainsIdentity);
 }
 export function createAadiGateway(options: Options = {}) {
   const fetchFn = options.fetchFn ?? fetch;
@@ -92,7 +97,7 @@ export function createAadiGateway(options: Options = {}) {
       try { payload = JSON.parse(await boundedBody(request, 32768)); } catch { return failure("INPUT", "Input tidak valid atau terlalu panjang.", 400); }
       if (!payload || typeof payload !== "object" || !("case" in payload) || Object.keys(payload).some(k => k !== "case") || !validCase(payload.case)) return failure("INPUT", "Lengkapi kasus terstruktur.", 400);
       const caseData = payload.case;
-      // Gaffer, 2026-11-17: the case is sent as typed, as in Glass Health; no identity screen on the analysis case.
+      if (caseContainsIdentity(caseData)) return failure("PII_DETECTED", "Hapus pola identitas pasien dari keluhan, catatan, dan konteks sebelum mengirim. Gunakan kode kasus tanpa nama, nomor identitas, kontak, atau alamat.", 400);
       if (!base || !token) return failure("NOT_CONFIGURED", "Token koneksi layanan analisis belum dikonfigurasi pada server workspace.", 503);
       // With a queue the caller waits for a slot and can read their place (GET /api/aadi/queue); without one the
       // gateway keeps its one-at-a-time refusal. The quota and the budget are charged only once a slot is held, so

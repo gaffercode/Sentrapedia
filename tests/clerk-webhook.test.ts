@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../src/app/api/webhooks/clerk/route";
 
-const state = vi.hoisted(() => ({ event: null as null | { type: string; data: Record<string, unknown> }, verifyError: false, configured: true, purged: [] as string[], purgeFails: false }));
+const state = vi.hoisted(() => ({ event: null as null | { type: string; data: Record<string, unknown> }, verifyError: false, purged: [] as string[], purgeFails: false }));
 vi.mock("@clerk/backend/webhooks", () => ({ verifyWebhook: async () => { if (state.verifyError || !state.event) throw new Error("No matching signature found"); return state.event; } }));
-vi.mock("../src/lib/sync/db", () => ({ syncConfigured: () => state.configured }));
+vi.mock("server-only", () => ({}));
 vi.mock("../src/lib/sync/store", () => ({ purgePrincipal: async (id: string) => { if (state.purgeFails) throw new Error("connection refused"); state.purged.push(id); return 1; } }));
 
 const incoming = (body = "{}") => new Request("https://beta.example.test/api/webhooks/clerk", { method: "POST", headers: { "content-type": "application/json", "content-length": String(body.length), "svix-id": "msg_1", "svix-timestamp": "1", "svix-signature": "v1,fixture" }, body });
-beforeEach(() => { vi.stubEnv("CLERK_WEBHOOK_SIGNING_SECRET", "whsec_fixture_not_a_real_secret"); state.event = null; state.verifyError = false; state.configured = true; state.purged = []; state.purgeFails = false; });
+beforeEach(() => { vi.stubEnv("CLERK_WEBHOOK_SIGNING_SECRET", "whsec_fixture_not_a_real_secret"); state.event = null; state.verifyError = false; vi.stubEnv("SENTRAPEDIA_DATABASE_URL", "postgres://unused"); vi.stubEnv("SENTRAPEDIA_SYNC_MODE", ""); state.purged = []; state.purgeFails = false; });
 afterEach(() => vi.unstubAllEnvs());
 
 describe("clerk webhook", () => {
@@ -36,6 +36,12 @@ describe("clerk webhook", () => {
     expect(await response.json()).toEqual({ status: "ok", handled: true, purged: 1 });
     expect(state.purged).toEqual(["user_a"]);
   });
+  it("purges account records when document sync is off", async () => {
+    vi.stubEnv("SENTRAPEDIA_SYNC_MODE", "off");
+    state.event = { type: "user.deleted", data: { id: "user_a", deleted: true } };
+    expect(await (await POST(incoming())).json()).toEqual({ status: "ok", handled: true, purged: 1 });
+    expect(state.purged).toEqual(["user_a"]);
+  });
   it("acknowledges other events and malformed ids without touching the database", async () => {
     state.event = { type: "user.created", data: { id: "user_a" } };
     expect(await (await POST(incoming())).json()).toEqual({ status: "ok", handled: false });
@@ -43,11 +49,11 @@ describe("clerk webhook", () => {
     expect((await POST(incoming())).status).toBe(400);
     expect(state.purged).toEqual([]);
   });
-  it("acknowledges a deletion on an instance without sync, and asks for a retry when the purge fails", async () => {
+  it("acknowledges a deletion on an instance without a database, and asks for a retry when the purge fails", async () => {
     state.event = { type: "user.deleted", data: { id: "user_a", deleted: true } };
-    state.configured = false;
+    vi.stubEnv("SENTRAPEDIA_DATABASE_URL", "");
     expect(await (await POST(incoming())).json()).toEqual({ status: "ok", handled: true, purged: 0 });
-    state.configured = true; state.purgeFails = true;
+    vi.stubEnv("SENTRAPEDIA_DATABASE_URL", "postgres://unused"); state.purgeFails = true;
     const response = await POST(incoming());
     expect(response.status).toBe(500);
     expect(await response.text()).not.toContain("connection refused");

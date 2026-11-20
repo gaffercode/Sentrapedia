@@ -3,6 +3,7 @@
 // Static and account dialogs of the workspace, moved out of workspace.tsx (tech-debt row 37); markup unchanged.
 import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Check, CircleHelp, ShieldCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 import { parseWorkspace, type Workspace } from "../lib/workspace";
 import { minPassphraseLength } from "../lib/workspace-crypto";
 import { Dialog } from "./dialog";
@@ -13,6 +14,10 @@ export function UpgradeDialog({ onClose }: { onClose: () => void }) {
 }
 
 export function LegalDialog({ title, onClose }: { title?: string; onClose: () => void }) {
+  if (title === "Ketentuan layanan" || title === "Kebijakan privasi") {
+    const href = title === "Ketentuan layanan" ? "/beta-policy#ketentuan" : "/beta-policy#privasi";
+    return <Dialog title={title} subtitle="Workspace klinis beta" onClose={onClose}><div className="legal-content"><Link href={href}>Baca {title.toLowerCase()} workspace beta</Link></div></Dialog>;
+  }
   return <Dialog title={title ?? "Informasi workspace"} subtitle="Workspace pengembangan lokal" onClose={onClose}><div className="legal-content"><ShieldCheck size={28}/><h3>Dibangun untuk menjelajahi alur kerja Anda.</h3><p>Sentrapedia adalah workspace mandiri untuk pengembangan. Layanan Clinical, langganan, dan perjanjian layanan produksi belum tersedia.</p><p>Data Pasien dan Encounter disimpan dalam local storage browser ini. Tidak ada analytics atau cookie iklan. Pengenalan suara dapat memakai layanan speech penyedia browser saat diaktifkan.</p><p>Draf lokal mempertahankan teks yang diberikan; tinjauan Clinician dan integrasi AI/Evidence diperlukan untuk penggunaan Clinical.</p></div><div className="dialog-footer"><button className="button primary" onClick={onClose}>Mengerti</button></div></Dialog>;
 }
 

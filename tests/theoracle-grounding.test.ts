@@ -173,7 +173,7 @@ describe("TheOracle vector grounding", () => {
     const calls: string[] = [];
     const embedder = async () => { loads++; return async (text: string) => { calls.push(text); return Float32Array.from([1, 0, 0]); }; };
     const indexDir = fixtureIndex();
-    await warmTheOracleGrounding({ indexDir, embedder });
+    await expect(warmTheOracleGrounding({ indexDir, embedder })).resolves.toBe(true);
     expect(loads).toBe(1);
     expect(calls).toEqual(["task: search result | query: demam"]);
     await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder });
@@ -185,7 +185,7 @@ describe("TheOracle vector grounding", () => {
     let attempts = 0;
     const embedder = async () => { if (attempts++ === 0) throw new Error("model load failure"); return async () => Float32Array.from([1, 0, 0]); };
     const indexDir = fixtureIndex();
-    await expect(warmTheOracleGrounding({ indexDir, embedder })).resolves.toBeUndefined();
+    await expect(warmTheOracleGrounding({ indexDir, embedder })).resolves.toBe(false);
     expect((await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder })).evidence.length).toBeGreaterThan(0);
     expect(attempts).toBe(2);
   });

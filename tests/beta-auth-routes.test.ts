@@ -6,7 +6,7 @@ import { GET, POST } from "../src/app/api/aadi/route";
 const state = vi.hoisted(() => ({ session: null as string | null, metadata: {} as Record<string, unknown>, steps: [] as Request[], principals: [] as (string | undefined)[], places: {} as Record<string, number>, gatewayOptions: {} as Record<string, unknown>, identityReads: 0, unavailable: false, failLookup: false }));
 const guardFakes = vi.hoisted(() => ({ queue: { position: (principal: string) => state.places[principal] ?? null }, limits: { marker: "limits" } }));
 const fixtureConfig = () => resolveAuthConfig({ NODE_ENV: "test", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: `pk_test_${Buffer.from("auth.example.test$").toString("base64")}`, CLERK_SECRET_KEY: "sk_test_fixture_not_a_real_key" });
-vi.mock("../src/lib/auth/server", () => ({ getBetaAccess: () => createBetaAccess({
+vi.mock("../src/lib/auth/server", () => ({ getAuthConfig: () => fixtureConfig(), getBetaAccess: () => createBetaAccess({
   config: state.unavailable ? { mode: "unavailable" } : fixtureConfig(),
   session: async () => { state.identityReads++; return state.session; },
   user: async (id) => { if (state.failLookup) throw new Error("Private provider error"); return { id, emailVerified: true, privateMetadata: state.metadata }; },
@@ -19,10 +19,10 @@ const gatewayFake = vi.hoisted(() => ({
 }));
 // The guards open a database pool and are server-only; their own rules are in aadi-guardrails.test.ts.
 vi.mock("../src/lib/aadi/server-guards", () => ({ analysisQueue: guardFakes.queue, analysisLimits: (targeted: boolean) => ({ ...guardFakes.limits, targeted }) }));
-vi.mock("../src/lib/theoracle-grounding", () => ({ retrieveTheOracleGrounding: async () => undefined, retrieveTheOracleTherapyGrounding: async () => undefined, warmTheOracleGrounding: async () => undefined }));
+vi.mock("../src/lib/theoracle-grounding", () => ({ retrieveTheOracleGrounding: async () => undefined, retrieveTheOracleTherapyGrounding: async () => undefined, warmTheOracleGrounding: async () => false }));
 
 const incoming = () => new Request("http://127.0.0.1:3101/api/aadi", { method: "POST", headers: { Origin: "http://127.0.0.1:3101", "Content-Type": "application/json" }, body: JSON.stringify({ case: "fixture" }) });
-const accepted = { version: "sentrapedia-beta-v2", acceptedAt: "2026-10-24T00:00:00.000Z" };
+const accepted = { version: "sentrapedia-beta-v3", acceptedAt: "2026-10-24T00:00:00.000Z" };
 const profile = { profession: "Dokter", registration: "STR-0001-TEST", practice: "Puskesmas Contoh, Kota Fiktif" };
 beforeEach(() => { state.session = null; state.metadata = {}; state.steps = []; state.principals = []; state.places = {}; state.identityReads = 0; state.unavailable = false; state.failLookup = false; });
 
@@ -38,7 +38,7 @@ describe("analysis route authorization", () => {
     const owed = await POST(incoming());
     expect(owed.status).toBe(403);
     expect(await owed.json()).toMatchObject({ error: { code: "CONSENT_REQUIRED" } });
-    state.metadata = { sentrapediaBetaConsent: { ...accepted, version: "sentrapedia-beta-v1" } };
+    state.metadata = { sentrapediaBetaConsent: { ...accepted, version: "sentrapedia-beta-v2" } };
     expect((await POST(incoming())).status).toBe(403);
     state.metadata = { sentrapediaBetaConsent: accepted, sentrapediaBetaProfile: profile };
     expect((await POST(incoming())).status).toBe(200);
@@ -74,7 +74,7 @@ describe("analysis route authorization", () => {
   it("the onboarding route retains body/origin validation and cannot accept a forged subject", async () => {
     const { POST: consentPost } = await import("../src/app/api/onboarding/consent/route");
     state.session = "user_a";
-    const body = { version: "sentrapedia-beta-v2", accepted: true, profile, userId: "user_b" };
+    const body = { version: "sentrapedia-beta-v3", accepted: true, profile, userId: "user_b" };
     const request = new Request("http://127.0.0.1:3101/api/onboarding/consent", { method: "POST", headers: { Origin: "http://127.0.0.1:3101", "Content-Type": "application/json" }, body: JSON.stringify(body) });
     expect((await consentPost(request)).status).toBe(400);
     expect(state.metadata).toEqual({});
