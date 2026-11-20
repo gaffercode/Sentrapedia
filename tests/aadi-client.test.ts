@@ -29,7 +29,7 @@ describe("direct main-composer analysis", () => {
     await expect(requestAadiAnalysis(emptyCase(), { fetchFn })).rejects.toThrow();
     expect(calls).toBe(0);
   });
-  it("sends a case as typed, identity patterns included (Gaffer, 2026-11-17, as in Glass Health)", async () => {
+  it("sends the case to the workspace gateway for server-side checks", async () => {
     const typed = { ...caseData, chiefComplaint: "Tn. Budi, hubungi 081234567890" };
     let body: unknown;
     await requestAadiAnalysis(typed, { fetchFn: async (_url, init) => { body = JSON.parse(String(init?.body)); return Response.json({ ...response, case: typed }); } });

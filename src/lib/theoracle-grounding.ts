@@ -110,10 +110,9 @@ function indexFor(options: RetrieveOptions): Promise<LoadedIndex> {
 }
 
 // Loads the index and embedding model and runs one embedding before the first case needs them (measured on
-// 2026-10-17: about 3 s with the files in the OS cache, up to 12 s from a cold disk). A failure is not reported
-// here: indexFor forgets the load, so the next case retries it and shows the error to the clinician.
-export function warmTheOracleGrounding(options: RetrieveOptions = {}): Promise<void> {
-  return indexFor(options).then(index => index.embed(index.manifest.prefixes.query + "demam")).then(() => undefined, () => undefined);
+// 2026-10-17: about 3 s with the files in the OS cache, up to 12 s from a cold disk).
+export function warmTheOracleGrounding(options: RetrieveOptions = {}): Promise<boolean> {
+  return indexFor(options).then(index => index.embed(index.manifest.prefixes.query + "demam")).then(() => true, () => false);
 }
 
 // A DOI is a citation, not an identifier: AHA DOIs end in 16 digits, which read as a NIK (Gaffer, 2026-10-19).

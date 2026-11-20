@@ -37,7 +37,7 @@ export function AuthFrame({ title, alternative, children }: {
 
     <footer className="auth-footer">
       <p>Architected and built by dr. Ferdi Iskandar</p>
-      <p><a href={`${site}ketentuan/`}>Ketentuan</a> · <a href={`${site}privasi/`}>Privasi</a></p>
+      <p><Link href="/beta-policy#ketentuan">Ketentuan beta</Link> · <Link href="/beta-policy#privasi">Privasi workspace</Link></p>
     </footer>
   </main>;
 }

@@ -54,7 +54,7 @@ describe("unlock screen", () => {
     fireEvent.change(screen.getByLabelText("Passphrase"), { target: { value: passphrase } });
     fireEvent.click(screen.getByRole("button", { name: "Buka workspace" }));
     expect(await screen.findByText("Pasien Rahasia")).toBeTruthy();
-    await waitFor(() => expect(saved()).not.toBe(sealed));
+    expect(saved()).toBe(sealed);
     expect(isEnvelope(saved())).toBe(true);
   });
   it("offers no removal while an unlock is running", async () => {
@@ -177,7 +177,7 @@ describe("final review fixes", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Hapus workspace terenkripsi" }));
     fireEvent.click(screen.getByRole("button", { name: "Hapus permanen" }));
     expect(saved()).toBeNull();
-    expect(reload).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
   });
   it("shows why enabling failed", async () => {
     const enable = vi.fn(async () => { throw new Error("Workspace terlalu besar untuk dienkripsi di browser ini."); });
@@ -224,5 +224,35 @@ describe("account dialog", () => {
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Kunci sekarang" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Matikan enkripsi" })).toBeTruthy();
+  });
+});
+
+
+describe("competing workspace saves", () => {
+  const editedElsewhere = { ...named, settings: { ...named.settings, name: "Other tab" } };
+
+  it("preserves the newer browser copy and keeps the stale tab's edit available for export", async () => {
+    localStorage.setItem(keys.storageKey, JSON.stringify(named));
+    render(<Harness/>);
+    await screen.findByText("Pasien Rahasia");
+    const other = JSON.stringify(editedElsewhere);
+    localStorage.setItem(keys.storageKey, other);
+    fireEvent.click(screen.getByRole("button", { name: "Ubah" }));
+    await waitFor(() => expect(api!.storageError).toContain("tab lain"));
+    expect(saved()).toBe(other);
+    expect(screen.getByText("Pasien Rahasia")).toBeTruthy();
+  });
+
+  it("preserves an encrypted copy changed elsewhere while a stale tab is unlocked", async () => {
+    localStorage.setItem(keys.storageKey, JSON.stringify(named));
+    render(<Harness/>);
+    await screen.findByText("Pasien Rahasia");
+    await act(() => api!.encryption.enable(passphrase));
+    const other = await sealWorkspace(await createLock(passphrase, 100_000), JSON.stringify(editedElsewhere));
+    localStorage.setItem(keys.storageKey, other);
+    fireEvent.click(screen.getByRole("button", { name: "Ubah" }));
+    await waitFor(() => expect(api!.storageError).toContain("tab lain"));
+    expect(saved()).toBe(other);
+    expect(screen.queryByRole("heading", { name: "Workspace terkunci" })).toBeNull();
   });
 });

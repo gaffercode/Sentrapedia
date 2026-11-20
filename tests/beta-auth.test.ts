@@ -5,7 +5,7 @@ import type { BetaUser } from "../src/lib/auth/policy";
 
 // Synthetic key-shaped inputs only: these never authenticate against a provider.
 const environment = { NODE_ENV: "test", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: `pk_test_${Buffer.from("auth.example.test$").toString("base64")}`, CLERK_SECRET_KEY: "sk_test_fixture_not_a_real_key" };
-const consent = { version: "sentrapedia-beta-v2", acceptedAt: "2026-10-24T00:00:00.000Z" };
+const consent = { version: "sentrapedia-beta-v3", acceptedAt: "2026-10-24T00:00:00.000Z" };
 const profile = { profession: "Dokter", registration: "STR-0001-TEST", practice: "Puskesmas Contoh, Kota Fiktif" };
 const user = (metadata: Record<string, unknown> = { sentrapediaBetaConsent: consent, sentrapediaBetaProfile: profile }): BetaUser => ({ id: "user_a", emailVerified: true, privateMetadata: metadata });
 function setup(initial = user(), sessionId: string | null = "user_a") {
@@ -20,7 +20,7 @@ function setup(initial = user(), sessionId: string | null = "user_a") {
   });
   return { access, writes, current: () => current };
 }
-const request = (body: unknown = { version: "sentrapedia-beta-v2", accepted: true, profile }, origin = "http://127.0.0.1:3101") => new Request("http://127.0.0.1:3101/api/onboarding/consent", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const request = (body: unknown = { version: "sentrapedia-beta-v3", accepted: true, profile }, origin = "http://127.0.0.1:3101") => new Request("http://127.0.0.1:3101/api/onboarding/consent", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
 afterEach(() => vi.useRealTimers());
 
 describe("closed-beta configuration", () => {
@@ -99,7 +99,7 @@ describe("server-owned access decisions", () => {
 describe("consent mutation", () => {
   it("rejects delayed trailing bytes and handles rejected cancellation without writing", async () => {
     const { access, writes } = setup(user({}));
-    const prefix = JSON.stringify({ version: "sentrapedia-beta-v2", accepted: true, profile });
+    const prefix = JSON.stringify({ version: "sentrapedia-beta-v3", accepted: true, profile });
     const encoder = new TextEncoder();
     const streams = [
       new ReadableStream({ start(controller) { controller.enqueue(encoder.encode(prefix)); queueMicrotask(() => { controller.enqueue(encoder.encode("trailing-invalid")); controller.close(); }); } }),
@@ -124,7 +124,7 @@ describe("consent mutation", () => {
   it("rejects a timed-out stream even when its unterminated prefix is valid acceptance JSON", async () => {
     vi.useFakeTimers();
     const { access, writes } = setup(user({}));
-    const stream = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(JSON.stringify({ version: "sentrapedia-beta-v2", accepted: true, profile }))); } });
+    const stream = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(JSON.stringify({ version: "sentrapedia-beta-v3", accepted: true, profile }))); } });
     const incoming = new Request("http://127.0.0.1:3101/api/onboarding/consent", { method: "POST", headers: { Origin: "http://127.0.0.1:3101", "Content-Type": "application/json" }, body: stream, duplex: "half" } as RequestInit);
     const pending = access.consent(incoming);
     await vi.advanceTimersByTimeAsync(5001);
@@ -137,14 +137,14 @@ describe("consent mutation", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ status: "ok" });
-    expect(writes).toEqual([{ id: "user_a", record: { version: "sentrapedia-beta-v2", acceptedAt: "2026-10-24T01:02:03.000Z" }, profile }]);
+    expect(writes).toEqual([{ id: "user_a", record: { version: "sentrapedia-beta-v3", acceptedAt: "2026-10-24T01:02:03.000Z" }, profile }]);
     expect(current().privateMetadata.unrelated).toEqual({ keep: true });
     expect(current().privateMetadata.sentrapediaBetaAccess).toEqual({ disabled: false });
     expect((await access.resolve()).status).toBe("allowed");
   });
   it("rejects forged subjects, missing acknowledgement and stale policy without writing", async () => {
     const { access, writes } = setup(user({}));
-    for (const value of [{}, { version: "sentrapedia-beta-v2", accepted: false }, { version: "old", accepted: true, profile }, { version: "sentrapedia-beta-v2", accepted: true, profile, userId: "user_b" }, { version: "sentrapedia-beta-v2", accepted: true, profile, acceptedAt: "2026-10-24T01:02:03.000Z" }]) expect((await access.consent(request(value))).status).toBe(400);
+    for (const value of [{}, { version: "sentrapedia-beta-v3", accepted: false }, { version: "old", accepted: true, profile }, { version: "sentrapedia-beta-v3", accepted: true, profile, userId: "user_b" }, { version: "sentrapedia-beta-v3", accepted: true, profile, acceptedAt: "2026-10-24T01:02:03.000Z" }]) expect((await access.consent(request(value))).status).toBe(400);
     expect(writes).toEqual([]);
   });
   it("sends an account that consented before the profile existed back to onboarding", async () => {
@@ -154,11 +154,11 @@ describe("consent mutation", () => {
   it("requires a complete professional profile and stores it trimmed, never otherwise rewritten", async () => {
     const { access, writes } = setup(user({}));
     const broken = [undefined, {}, { ...profile, profession: "Dukun" }, { ...profile, registration: "12" }, { ...profile, registration: "<script>" }, { ...profile, practice: "ab" }, { ...profile, practice: "Kota\u0000Fiktif" }, { ...profile, extra: "x" }];
-    for (const value of broken) expect((await access.consent(request({ version: "sentrapedia-beta-v2", accepted: true, profile: value }))).status).toBe(400);
+    for (const value of broken) expect((await access.consent(request({ version: "sentrapedia-beta-v3", accepted: true, profile: value }))).status).toBe(400);
     expect(writes).toEqual([]);
-    const response = await access.consent(request({ version: "sentrapedia-beta-v2", accepted: true, profile: { profession: "Bidan", registration: "  AB 12/34-56.7  ", practice: " Klinik Contoh " } }));
+    const response = await access.consent(request({ version: "sentrapedia-beta-v3", accepted: true, profile: { profession: "Bidan", registration: "  AB 12/34-56.7  ", practice: " Klinik Contoh " } }));
     expect(response.status).toBe(200);
-    expect(writes).toEqual([{ id: "user_a", record: { version: "sentrapedia-beta-v2", acceptedAt: "2026-10-24T01:02:03.000Z" }, profile: { profession: "Bidan", registration: "AB 12/34-56.7", practice: "Klinik Contoh" } }]);
+    expect(writes).toEqual([{ id: "user_a", record: { version: "sentrapedia-beta-v3", acceptedAt: "2026-10-24T01:02:03.000Z" }, profile: { profession: "Bidan", registration: "AB 12/34-56.7", practice: "Klinik Contoh" } }]);
   });
   it("requires exact trusted origin, not a forwarded-host assertion", async () => {
     const { access, writes } = setup(user({}));
@@ -179,7 +179,7 @@ describe("consent mutation", () => {
   it("admits the tunnel origin when the server binds every interface, as the image does", async () => {
     // The image sets HOSTNAME=0.0.0.0 and Next builds request.url from that bind address, never from the Host header.
     const access = createBetaAccess({ config: resolveAuthConfig({ ...environment, SENTRAPEDIA_PUBLIC_ORIGIN: "https://beta.example.test" }), session: async () => "user_a", user: async () => user({}), writeConsent: async () => undefined });
-    const bound = (url: string, origin: string) => new Request(url, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ version: "sentrapedia-beta-v2", accepted: true, profile }) });
+    const bound = (url: string, origin: string) => new Request(url, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ version: "sentrapedia-beta-v3", accepted: true, profile }) });
     for (const url of ["https://0.0.0.0:3000/api/onboarding/consent", "https://[::]:3000/api/onboarding/consent"]) {
       expect((await access.consent(bound(url, "https://beta.example.test"))).status).toBe(200);
       expect((await access.consent(bound(url, "https://evil.test"))).status).toBe(403);

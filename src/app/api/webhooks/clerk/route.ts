@@ -2,7 +2,6 @@
 import { verifyWebhook } from "@clerk/backend/webhooks";
 import { errorResponse } from "../../../../lib/auth/access";
 import { validUserId } from "../../../../lib/auth/policy";
-import { syncConfigured } from "../../../../lib/sync/db";
 import { purgePrincipal } from "../../../../lib/sync/store";
 
 export const runtime = "nodejs";
@@ -25,7 +24,8 @@ export async function POST(request: Request) {
   if (event.type !== "user.deleted") return ok({ handled: false });
   const id = event.data.id;
   if (typeof id !== "string" || !validUserId(id)) return errorResponse(400, "INPUT", "Identitas pengguna tidak valid.");
-  if (!syncConfigured()) return ok({ handled: true, purged: 0 });
+  // Account records can exist even when workspace document sync is disabled.
+  if (!process.env.SENTRAPEDIA_DATABASE_URL) return ok({ handled: true, purged: 0 });
   try { return ok({ handled: true, purged: await purgePrincipal(id) }); }
   catch { return errorResponse(500, "PURGE_FAILED", "Penghapusan data belum berhasil; webhook akan diulang."); }
 }

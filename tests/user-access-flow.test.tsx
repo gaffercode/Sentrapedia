@@ -16,7 +16,7 @@ vi.mock("@clerk/nextjs", () => ({
 }));
 
 const config = resolveAuthConfig({ NODE_ENV: "test", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: `pk_test_${Buffer.from("auth.example.test$").toString("base64")}`, CLERK_SECRET_KEY: "sk_test_fixture_not_a_real_key" });
-const consent = { version: "sentrapedia-beta-v2", acceptedAt: "2026-10-24T00:00:00.000Z" };
+const consent = { version: "sentrapedia-beta-v3", acceptedAt: "2026-10-24T00:00:00.000Z" };
 const profile = { profession: "Dokter", registration: "STR-0001-TEST", practice: "Puskesmas Contoh, Kota Fiktif" };
 function access(metadata: Record<string, unknown> = {}, emailVerified = true, session: string | null = "user_new") {
   const writeConsent = vi.fn();

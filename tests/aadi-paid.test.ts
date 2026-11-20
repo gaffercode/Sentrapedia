@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { selectedAadiModel, aadiServiceVersion, aadiStepBudgetUsd, aadiDailyBudgetUsd, aadiGatewayTimeoutMs } from "../src/lib/aadi/model-profile";
 import aadiProfile from "../scripts/aadi-profile.json";
 import { createAadiGateway } from "../src/lib/aadi/gateway";
@@ -6,11 +6,24 @@ import { emptyCase } from "../src/lib/aadi/contract";
 import { THEORACLE_GROUNDING_CAPABILITY, TheOracleGroundingError, type TheOracleGroundingBundle } from "../src/lib/theoracle-grounding-types";
 
 const version = (plan = selectedAadiModel, assess = selectedAadiModel) => `aadi-service/test+contract=1+provider=openai+data=synthetic-only+plan=${plan}+assess=${assess}+experimental`;
-const input = () => new Request("http://127.0.0.1:3104/api/aadi", { method: "POST", headers: { Origin: "http://127.0.0.1:3104", "Content-Type": "application/json" }, body: JSON.stringify({ case: { ...emptyCase(), chiefComplaint: "Kasus fiktif untuk uji" } }) });
+const input = (caseData = { ...emptyCase(), chiefComplaint: "Kasus fiktif untuk uji" }) => new Request("http://127.0.0.1:3104/api/aadi", { method: "POST", headers: { Origin: "http://127.0.0.1:3104", "Content-Type": "application/json" }, body: JSON.stringify({ case: caseData }) });
 const result = { contractVersion: "1", status: "ok", differential: { likely: [], alternatives: [], cannotMiss: [] }, evidence: [], missingInformation: ["Input kurang"], nextBestActions: [], disposition: null, unfilled: [], meta: { version: version(), model: `${selectedAadiModel}+${selectedAadiModel}`, costUsd: 0.006 } };
 const grounding: TheOracleGroundingBundle = { version: THEORACLE_GROUNDING_CAPABILITY, corpus: { name: "TheOracle", indexSha256: "a".repeat(64), embeddingModel: { id: "onnx-community/embeddinggemma-300m-ONNX", revision: "e".repeat(40), dtype: "fp32", dims: 768 }, retrievedAt: "2026-10-10T12:00:00.000Z", reviewProvenance: "Gaffer stated session-level review provenance." }, queryDigest: "b".repeat(64), evidence: [{ evidenceId: "P001-001", text: "Kutipan TheOracle", retrievalRank: 1, similarity: 0.71, source: { title: "PNPK uji.md", docSource: "Kemenkes knowledge base", origin: "oracle-ii-knowledge-base", textSha256: "c".repeat(64) } }] };
 
 describe("approved Gemini Flash profile", () => {
+  it("rejects recognizable patient identifiers before retrieval, quota or engine requests", async () => {
+    const marker = "Nama: Pasien Fiktif";
+    const fetchFn = vi.fn(async () => Response.json(result));
+    const retrieveGrounding = vi.fn(async () => grounding);
+    const admit = vi.fn(async () => ({ ok: false, status: 503, code: "LIMITS_UNAVAILABLE", message: "Fixture" } as const));
+    const gateway = createAadiGateway({ token: "test-only", fetchFn, retrieveGrounding, limits: { admit, usage: vi.fn() } });
+    const response = await gateway.step(input({ ...emptyCase(), chiefComplaint: "Kasus fiktif untuk uji", anamnesis: { qa: [{ question: "Konteks", answer: marker }] } }), "user_a");
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: "PII_DETECTED" } });
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(retrieveGrounding).not.toHaveBeenCalled();
+    expect(admit).not.toHaveBeenCalled();
+  });
   it("requires advertised grounding capability before retrieval or inference", async () => {
     let retrievals = 0;
     const gateway = createAadiGateway({ log: () => undefined, model: selectedAadiModel, maxCostUsd: 0.1, token: "test-only", retrieveGrounding: async () => { retrievals++; return grounding; }, fetchFn: async () => Response.json({ status: "ok", contractVersion: "1", version: version(), capabilities: [] }) });

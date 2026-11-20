@@ -1,5 +1,5 @@
-// v2 drops the synthetic-only declaration: the wording the user accepts changed, so a v1 consent is not this one.
-export const betaPolicyVersion = "sentrapedia-beta-v2";
+// The workspace terms and privacy disclosures require a new acknowledgement.
+export const betaPolicyVersion = "sentrapedia-beta-v3";
 export type BetaConsent = { version: string; acceptedAt: string };
 // Gaffer, 2026-11-17: Clerk's waitlist holds an email address only, so the professional profile is asked here, once,
 // with the acknowledgement. The registration number is stored as typed; nothing checks it against the KKI register.
