@@ -8,8 +8,32 @@ coverage/
 .runtime/
 __pycache__/
 .pytest_cache/
+# Local databases, dumps and backups: real data never goes into Git. SQL migrations stay tracked.
+*.sqlite
+*.sqlite3
 *.sqlite-wal
 *.sqlite-shm
+*.db
+*.dump
+*.pgdump
+*.bak
+*.backup
+*.sql.gz
+*dump*.sql
+*backup*.sql
+backups/
+dumps/
+# Keys and credential files
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+service-account*.json
+credentials*.json
+# Host tooling state
+.vercel/
 theoracle/model/
 # Generated from chunks.jsonl and fetched by npm run knowledge:install (Gaffer, 2026-10-25).
 theoracle/index/vectors.f32
