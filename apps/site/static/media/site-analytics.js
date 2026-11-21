@@ -36,10 +36,12 @@
     script.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
     document.head.append(script);
   }
-  const panel = document.createElement('section');
+  // The build writes the panel into each page so it paints with the page; this module adopts it and builds one only if it is absent.
+  const inPage = document.querySelector('.analytics-choice');
+  const panel = inPage || document.createElement('section');
   panel.className = 'analytics-choice';
   panel.setAttribute('aria-label', 'Pilihan analitik');
-  panel.innerHTML = '<h2>Izinkan analitik kunjungan?</h2><p>Google Analytics membantu kami memahami penggunaan situs. Pilihan ini opsional. Isi formulir dan data pasien tidak dikirim ke Analytics. <a href="/privasi/#pasal-5">Kebijakan privasi</a></p><div class="analytics-actions"><button type="button" data-choice="denied">Tolak</button><button type="button" data-choice="granted">Izinkan analitik</button></div>';
+  if (!inPage) panel.innerHTML = '<h2>Izinkan analitik kunjungan?</h2><p>Google Analytics membantu kami memahami penggunaan situs. Pilihan ini opsional. Isi formulir dan data pasien tidak dikirim ke Analytics. <a href="/privasi/#pasal-5">Kebijakan privasi</a></p><div class="analytics-actions"><button type="button" data-choice="denied">Tolak</button><button type="button" data-choice="granted">Izinkan analitik</button></div>';
   const settings = document.createElement('button');
   settings.type = 'button';
   settings.className = 'analytics-settings';
@@ -62,8 +64,10 @@
     settings.focus();
   }
   panel.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => save(button.dataset.choice)));
-  document.body.append(panel, settings);
-  if (valid) { panel.hidden = true; if (choice.value === 'granted') enable(); }
+  if (inPage) document.body.append(settings);
+  else document.body.append(panel, settings);
+  panel.hidden = Boolean(valid);
+  if (valid && choice.value === 'granted') enable();
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
     if (!link) return;

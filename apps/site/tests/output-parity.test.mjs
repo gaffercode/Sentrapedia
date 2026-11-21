@@ -26,12 +26,13 @@ test('every public path is preserved and only reviewed runtime bundles change by
   // Strip only the reviewed shared metadata; preserve byte comparisons for the remaining HTML.
   for (const entry of actual.filter(entry => entry.path.endsWith('.html') && entry.path !== 'index.html' && entry.path !== 'privasi/index.html')) {
     const source = await readFile(new URL('site/' + entry.path, root), 'utf8');
-    entry.sha256 = createHash('sha256').update(source.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '')).digest('hex');
+    // The analytics choice panel is written after <body> on every page (PageSpeed plan 2026-11-21); strip it like the head block.
+    entry.sha256 = createHash('sha256').update(source.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '').replace(/\n<!-- analytics-choice:start -->[\s\S]*?<!-- analytics-choice:end -->/, '')).digest('hex');
   }
   // Reinsert only the audited unused WordPress emoji rule to prove the rest of the homepage is byte-identical.
   const html = await readFile(new URL('site/index.html', root), 'utf8');
   const removed = await readFile(new URL('refactor-evidence/removed-emoji-style.txt', root), 'utf8');
-  const restored = html.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '').replace('https://sentrapedia.com/\" />', 'index.html\" />').replace('<style id="wp-block-library-inline-css">', removed + '<style id="wp-block-library-inline-css">')
+  const restored = html.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '').replace(/\n<!-- analytics-choice:start -->[\s\S]*?<!-- analytics-choice:end -->/, '').replace('https://sentrapedia.com/\" />', 'index.html\" />').replace('<style id="wp-block-library-inline-css">', removed + '<style id="wp-block-library-inline-css">')
     // Gaffer approved desktop/mobile beta access; remove only the exact added navigation markup for historical comparison.
     .replace('<li class="menu-item" data-login-desktop><a href="https://beta.sentrapedia.com/sign-in">Masuk</a></li>\n', '')
     .replace('<div class="col-md-7 main-menu-div d-none d-md-block">', '<div class="col-md-6 main-menu-div d-none d-md-block">')

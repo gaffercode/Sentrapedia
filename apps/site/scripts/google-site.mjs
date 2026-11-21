@@ -1,6 +1,14 @@
 export const origin = 'https://sentrapedia.com';
 export const pages = ['/', '/faq/', '/privasi/', '/ketentuan/', '/penafian/', '/ruang-kerja/', '/sejarah-sentra/'];
 
+// The analytics choice is written into every page so it paints with the page instead of after script load (it was
+// the Largest Contentful Paint element in the PageSpeed review of 2026-11-21). It ships hidden; the inline script only
+// decides whether to show it, by the same host, path and stored-choice rules as /media/site-analytics.js, which then
+// adopts this element and owns everything else. Nothing here loads or sends anything.
+const choicePanel = '<section class="analytics-choice" aria-label="Pilihan analitik" hidden><h2>Izinkan analitik kunjungan?</h2><p>Google Analytics membantu kami memahami penggunaan situs. Pilihan ini opsional. Isi formulir dan data pasien tidak dikirim ke Analytics. <a href="/privasi/#pasal-5">Kebijakan privasi</a></p><div class="analytics-actions"><button type="button" data-choice="denied">Tolak</button><button type="button" data-choice="granted">Izinkan analitik</button></div></section>';
+const choiceScript = `(function(){var p=document.currentScript.previousElementSibling,c=null;if(['sentrapedia.com','www.sentrapedia.com'].indexOf(location.hostname)<0||[${['/', '/index.html', ...pages.slice(1)].map(page => `'${page}'`).join(', ')}].indexOf(location.pathname)<0)return;try{c=JSON.parse(localStorage.getItem('sentrapedia.analytics.v1'))}catch(e){}if(!(c&&(c.value==='granted'||c.value==='denied')&&Date.now()-c.time<180*86400000))p.hidden=false})();`;
+const analyticsChoice = `\n<!-- analytics-choice:start -->\n${choicePanel}<script>${choiceScript}</script>\n<!-- analytics-choice:end -->`;
+
 export function googleHead(html, pathname) {
   const canonical = origin + pathname;
   const hasDescription = /<meta\b[^>]*name=["']description["']/i.test(html);
@@ -11,7 +19,7 @@ export function googleHead(html, pathname) {
     '@context': 'https://schema.org', '@type': 'WebSite', name: 'Sentrapedia', url: origin + '/', inLanguage: 'id',
     publisher: { '@type': 'Organization', name: 'Sentra Artificial Intelligence', url: origin + '/' }
   })}</script>` : '';
-  return clean.replace('</head>', `<!-- google-site:start -->
+  return clean.replace(/<body\b[^>]*>/, body => body + analyticsChoice).replace('</head>', `<!-- google-site:start -->
 ${hadCanonical ? '' : `<link rel="canonical" href="${canonical}">`}
 ${hasDescription ? '' : `<meta name="description" content="${description}">`}
 <meta property="og:site_name" content="Sentrapedia">

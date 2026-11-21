@@ -512,7 +512,7 @@
     },
     {
       "path": "scripts/google-site.mjs",
-      "sha256": "e8097333244eef7691bc36a6b4614c3da3cc165d45f585c2ce6ec8b8fcc7cc97"
+      "sha256": "e6ca70c8f2c88fbfae1c2d43be6f85d13bfb1a7ec73ebeef4a241f319caf90bc"
     },
     {
       "path": "static/media/site-analytics.css",
@@ -520,7 +520,7 @@
     },
     {
       "path": "static/media/site-analytics.js",
-      "sha256": "2b6af80bb81479fec93b0f57ce44a0a35cb1c6173a1facf25fe3fdf60c0c9619"
+      "sha256": "76965daef9e95bbc46920a54cd9fda286a9681ad200fadd8aa5fe3faf85a5745"
     },
     {
       "path": "assets/fonts/Caveat-Variable.woff2",
