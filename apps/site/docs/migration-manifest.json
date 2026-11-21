@@ -248,7 +248,7 @@
     },
     {
       "path": "scripts/faq.test.mjs",
-      "sha256": "7a7628f02cedbb1c9cabb8b86bf1b99deabe73a1914c5aa3be387136ed7757aa"
+      "sha256": "82bcc78ee0ed5987204fe73ee733af28fb99c950f776d110b415dc0e98774a23"
     },
     {
       "path": "scripts/hero.test.mjs",
@@ -260,7 +260,7 @@
     },
     {
       "path": "scripts/legal.test.mjs",
-      "sha256": "b7eb5b239717eb085b69ca7abfbc48243d97074d59c1d7ba7fa1932f2d7ce725"
+      "sha256": "9e4f89a881ef74f957382ba8d6dc14e77da512c55225059aa3140926f7be295a"
     },
     {
       "path": "scripts/ruang-kerja.test.mjs",
@@ -268,7 +268,7 @@
     },
     {
       "path": "scripts/serve.mjs",
-      "sha256": "82c2c3df59fed8ed02f1698c53d97accc2cfd2c19135ecc937d41b4538e79793"
+      "sha256": "8707f8167636ad6ee56ee7231897420543a860c3585341e2f210dfadfba48257"
     },
     {
       "path": "scripts/serve.test.mjs",
@@ -276,11 +276,11 @@
     },
     {
       "path": "scripts/transform.mjs",
-      "sha256": "165efdc2edba4f9bb0cef342277b691e5188039bf13361039ba3392726a4fd8e"
+      "sha256": "2f607749bd9a8e788101ebc4a65a2112ee6b631433186e17901cb485778f4395"
     },
     {
       "path": "scripts/verify.mjs",
-      "sha256": "1157837a2bebc9ae36430d002561aba49605e029b776b23d519f963de543e3f4"
+      "sha256": "40cb432b200180b37f3bb90634f06f43185eaa32fec70f5fc1983ba6366b358c"
     },
     {
       "path": "scripts/workflow-playback.test.mjs",
@@ -364,7 +364,7 @@
     },
     {
       "path": "source/privasi/index.html",
-      "sha256": "b8c9b0bd868274a35dbb6e961d55c00723ee7b93cefba895a68d9721accd2376"
+      "sha256": "7c92de3970b66f376b2221fb0b9d883987a8e75e3beeb54ab669e42b5a11fd44"
     },
     {
       "path": "source/ruang-kerja/index.html",
@@ -484,7 +484,7 @@
     },
     {
       "path": "scripts/browser/contact.js",
-      "sha256": "3ab7e6eb2704d80c2d3824bad91ba2b4a44d73d3aed322b757409ef70b0a1020"
+      "sha256": "9a1eb9cd9a90f322a63a8be0ebd2472ea39be814ef8d002fd28ada3280eff54c"
     },
     {
       "path": "scripts/browser/hero-bindings.js",
@@ -509,6 +509,18 @@
     {
       "path": "static/google657b7800c1a4e83e.html",
       "sha256": "48e1e72b0cc56b09e519cd2e49dae2206f0835ff10e96440c23abfae29a703cb"
+    },
+    {
+      "path": "scripts/google-site.mjs",
+      "sha256": "6edfde6bad2b31bd22e0dde8242bb47d705a881b71ad70c83a87400ccb7e6e19"
+    },
+    {
+      "path": "static/media/site-analytics.css",
+      "sha256": "30e842b83efcd2509f77a90fb1c0dd51aedca88033b35a99531639be1722a50b"
+    },
+    {
+      "path": "static/media/site-analytics.js",
+      "sha256": "2b6af80bb81479fec93b0f57ce44a0a35cb1c6173a1facf25fe3fdf60c0c9619"
     }
   ]
 }
