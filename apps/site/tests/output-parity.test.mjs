@@ -19,7 +19,9 @@ test('every public path is preserved and only reviewed runtime bundles change by
   const additions = new Set(['media/site-analytics.js', 'media/site-analytics.css', 'robots.txt', 'sitemap.xml',
     // PageSpeed plan 2026-11-21: subset WOFF2 files served ahead of the full fonts, which stay at their paths.
     'assets/theme/fonts/Inter_28pt-Regular.woff2', 'assets/theme/fonts/Inter_28pt-SemiBold.woff2', 'assets/theme/fonts/Inter_28pt-Bold.woff2',
-    'assets/theme/fonts/bootstrap-icons-subset.woff2', 'media/fonts/Caveat-Variable.woff2']);
+    'assets/theme/fonts/bootstrap-icons-subset.woff2', 'media/fonts/Caveat-Variable.woff2',
+    // PageSpeed plan 2026-11-21: frame 0 of each film, shown until the film itself is fetched.
+    'media/promo-vid-poster.webp', 'media/sentrapedia-solusi-poster.webp']);
   for (let i = actual.length - 1; i >= 0; i--) if (additions.has(actual[i].path)) actual.splice(i, 1);
   // Strip only the reviewed shared metadata; preserve byte comparisons for the remaining HTML.
   for (const entry of actual.filter(entry => entry.path.endsWith('.html') && entry.path !== 'index.html' && entry.path !== 'privasi/index.html')) {
@@ -42,7 +44,9 @@ test('every public path is preserved and only reviewed runtime bundles change by
     // Gaffer explicitly removed the directional caption on 2026-10-23; preserve the historical baseline.
     .replace('<h3 id="capability-explorer-title">Sepuluh kemampuan.<br>Satu ruang kerja.</h3></div>', '$&<p>3 ke kanan · 3 turun<br>3 ke kanan · 1 turun.</p>')
     // PageSpeed plan approved by Gaffer on 2026-11-21; each line below removes exactly one approved homepage edit.
-    .replace(/\n<style id="site-fonts-css">\n(?:@font-face \{[^}]*\}\n){4}<\/style>/, '');
+    .replace(/\n<style id="site-fonts-css">\n(?:@font-face \{[^}]*\}\n){4}<\/style>/, '')
+    .replace('<video class="product-film-video" muted playsinline loop preload="none" poster="/media/promo-vid-poster.webp">', '<video class="product-film-video" muted playsinline loop preload="metadata">')
+    .replace('<video muted playsinline loop preload="none" poster="/media/sentrapedia-solusi-poster.webp" aria-label=', '<video muted playsinline loop preload="metadata" aria-label=');
   actual.find(entry => entry.path === 'index.html').sha256 = createHash('sha256').update(restored).digest('hex');
   assert.deepEqual(actual.map(entry => entry.path), expected.map(entry => entry.path));
   const runtime = new Set(['media/design-audit.js', 'media/hero-workspace.js', 'media/capability-explorer.js', 'media/clinical-video.js', 'media/workflow-playback.js', 'privasi/index.html']); // Privacy copy is independently reviewed for the opt-in analytics change.
@@ -53,6 +57,8 @@ test('every public path is preserved and only reviewed runtime bundles change by
     'assets/theme/img/sentrapedia-wordmark-footer.svg', 'assets/theme/img/sentrapedia-wordmark-header.svg',
     // A subset @font-face follows each full-font rule; the full Caveat rule also names the range it can draw.
     'media/clinical-video.css', 'media/faq.css', 'media/legal.css', 'media/ruang-kerja.css', 'media/sejarah-sentra.css',
+    // An early observer starts the film's download before playback is due (media/clinical-video.js is a runtime bundle above).
+    'media/product-film.js',
   ]);
   const reviewed = entry => !runtime.has(entry.path) && !performance20261121.has(entry.path);
   assert.deepEqual(actual.filter(reviewed), expected.filter(reviewed));

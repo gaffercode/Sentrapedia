@@ -60,7 +60,7 @@
     },
     {
       "path": "assets/clinical-video.js",
-      "sha256": "4bd12f93a4fb966e344bf9e734c8985f02834865e70efe28c4df937baf69894b"
+      "sha256": "a4d429fcbcc6b1a74f896efbfa6e5bb63e540546f3c5f0dab00ea39efd2a9d3f"
     },
     {
       "path": "assets/design-audit.css",
@@ -144,7 +144,7 @@
     },
     {
       "path": "assets/product-film.js",
-      "sha256": "858fc0e844b5d42b5af0ea621ec5a63bef2a4d6cb19cb03be3485f51af3c9815"
+      "sha256": "0ec724a07ecd1ba428ac5067aa708772d28133cfb0f867cae25063e19c4e6ce8"
     },
     {
       "path": "assets/promo-vid.mp4",
@@ -292,7 +292,7 @@
     },
     {
       "path": "source/index.html",
-      "sha256": "f6181e66627636dbbdeeed7c8ca40bf38e3ebcb6be25b768277d407269a26048"
+      "sha256": "5414ffe4b27c29987dc17c16bb938ce812c6914ce70a2e642ff7cbd61d7ba0b5"
     },
     {
       "path": "assets/system-anatomy.css",
@@ -464,7 +464,7 @@
     },
     {
       "path": "scripts/site-assets.mjs",
-      "sha256": "a6687ed87b8f1b8b2d2575138c267e046862d873b73af531b5a4ea57ba198d5f"
+      "sha256": "141ca513984056c752523ede93c1dac147ca7cad18bd12e85144844bddd1d9f7"
     },
     {
       "path": "scripts/browser-assets.mjs",
@@ -541,6 +541,14 @@
     {
       "path": "static/assets/theme/fonts/bootstrap-icons-subset.woff2",
       "sha256": "3866395570b122727a20763d348e538abfa51240e61b80696ab3875ba3988719"
+    },
+    {
+      "path": "assets/promo-vid-poster.webp",
+      "sha256": "71467d8dd70026081f8cbfa309798b6dddf94f187278c3188b5e108f9ebc1eb0"
+    },
+    {
+      "path": "assets/sentrapedia-solusi-poster.webp",
+      "sha256": "cd8e833e4d26f6ea3b0bf4b3a0c33282405650d60fadaf46bde48612187d4a62"
     }
   ]
 }

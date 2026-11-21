@@ -148,3 +148,45 @@ test('the handwriting font is not fetched to draw an arrow it does not contain',
   for (const code of drawable) assert.ok(inRange(full.range, code), `U+${code.toString(16).toUpperCase()} is in Caveat but outside the range its face declares`);
   for (const arrow of [0x2190, 0x2191, 0x2192, 0x2193, 0x2197, 0x2198]) assert.ok(!inRange(full.range, arrow), `U+${arrow.toString(16).toUpperCase()} would fetch the full Caveat for nothing`);
 });
+
+function webpSize(bytes) {
+  assert.equal(bytes.toString('latin1', 0, 4) + bytes.toString('latin1', 8, 12), 'RIFFWEBP', 'not a WebP file');
+  const chunk = bytes.toString('latin1', 12, 16);
+  if (chunk === 'VP8 ') return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+  if (chunk === 'VP8X') return { width: bytes.readUIntLE(24, 3) + 1, height: bytes.readUIntLE(27, 3) + 1 };
+  throw new Error('unexpected WebP chunk ' + chunk);
+}
+
+test('films are not fetched before they are needed', async () => {
+  // Before: preload="metadata" and no poster; the PageSpeed run fetched both films whole (4,483 KiB) on page load.
+  const html = await readFile(new URL('index.html', site), 'utf8');
+  const films = { 'promo-vid': /<video class="product-film-video"[^>]*>/, 'sentrapedia-solusi': /<video muted[^>]*aria-label="Video solusi Sentrapedia">/ };
+  for (const [name, pattern] of Object.entries(films)) {
+    const tag = pattern.exec(html)?.[0];
+    assert.ok(tag, `${name}: video tag not found`);
+    assert.match(tag, /\bpreload="none"/, `${name}: the browser may fetch the film with the page`);
+    assert.match(tag, new RegExp(`\\bposter="/media/${name}-poster\\.webp"`), `${name}: nothing to show before the film loads`);
+    assert.match(tag, /\bmuted\b[^>]*\bplaysinline\b[^>]*\bloop\b/, `${name}: playback attributes changed`);
+    const poster = await readFile(new URL(`media/${name}-poster.webp`, site));
+    assert.deepEqual(webpSize(poster), { width: 1280, height: 720 }, `${name}: poster is not the film's frame size`);
+    assert.ok(poster.length <= 70000, `${name}: poster is ${poster.length} bytes, over 70000`);
+  }
+});
+
+test('each film starts buffering before it plays, never with the page and never under reduced motion', async () => {
+  // preload="none" alone would start the download only at the moment playback is due.
+  // The clinical film is far down the page: it warms one screen early. The product film sits about 220 px below a
+  // 900 px desktop screen, so any margin would fetch it with the page (measured in Chrome 153); it warms when its
+  // first pixel is on screen, ahead of the 30% that starts playback.
+  for (const [file, reduced, margin] of [['media/product-film.js', 'reducedMotion', null], ['media/clinical-video.js', 'reduced', "'100% 0px'"]]) {
+    const script = await readFile(new URL(file, site), 'utf8');
+    const warm = /const warm = [\s\S]*?new IntersectionObserver\(([\s\S]*?)\}(?:, \{ rootMargin: ([^}]+) \})?\)/.exec(script);
+    assert.ok(warm, `${file}: no early observer`);
+    assert.equal(warm[2]?.trim() ?? null, margin, `${file}: early observer margin`);
+    assert.match(warm[1], new RegExp(`${reduced}\\.matches`), `${file}: warms the film for visitors who asked for reduced motion`);
+    assert.match(warm[1], /video\.preload = 'auto'/, `${file}: the early observer does not start the download`);
+  }
+  // The playback thresholds are untouched.
+  assert.match(await readFile(new URL('media/product-film.js', site), 'utf8'), /intersectionRatio >= \.3;[\s\S]*?\{ threshold: \.3 \}/);
+  assert.match(await readFile(new URL('media/clinical-video.js', site), 'utf8'), /visible = entries\[0\]\.isIntersecting;[\s\S]*?\{ threshold: 0\.2 \}/);
+});

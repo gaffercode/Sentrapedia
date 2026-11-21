@@ -167,6 +167,15 @@ if (productFilm) {
       inView = entries[0].intersectionRatio >= .3;
       sync();
     }, { threshold: .3 }).observe(productFilm);
+    // The film is not fetched with the page (preload="none"). Start buffering when its first pixel is on screen,
+    // ahead of the 30% that starts playback, unless the visitor asked for reduced motion: then it loads only when
+    // they press Putar. No margin: the film sits just below the first screen and a margin would fetch it with the page.
+    const warm = new IntersectionObserver(entries => {
+      if (!entries[0].isIntersecting || reducedMotion.matches) return;
+      video.preload = 'auto';
+      warm.disconnect();
+    });
+    warm.observe(video);
   } else {
     inView = true;
     sync();
