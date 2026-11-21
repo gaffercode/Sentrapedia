@@ -56,3 +56,48 @@ Gaffer's decision of 2026-10-19: the code may be published under the royalty lic
 - Without the data, the app builds and runs: the library shows the fictional sample, analyses answer "Database Oracle belum terpasang di server ini. Analisis tidak dijalankan.", and tests that need the real catalogue or index are skipped (`tests/private-data.ts`).
 - With the data: the server reads it at run time from `SENTRAPEDIA_DATA_DIR` (default: the working folder, so a capsule checkout that holds the data works unchanged). The beta container mounts `/opt/sentrapedia/data` read-only at `/data`. The data is never copied into a build or a Docker image; `npm run deploy:dry-run` runs `scripts/leak-guard.mjs`, which fails on a private file or catalogue text in a public tree or in any build.
 
+## Account database on your own machine
+
+The local workspace runs without any database. The account database matters only when Clerk sign-in is on (analysis limits, feedback) or workspace sync is switched on. To build an empty copy of it on your own machine you need PostgreSQL 16 and `psql`. The commands below are written for a POSIX shell (Git Bash works on Windows) and were checked on PostgreSQL 16.
+
+1. Create an empty database and name the owner connection. The owner runs migrations only:
+
+   ```bash
+   createdb sentrapedia_local
+   export OWNER_URL=postgres://postgres@127.0.0.1:5432/sentrapedia_local
+   ```
+
+2. Apply every migration in name order:
+
+   ```bash
+   for file in db/migrations/*.sql; do psql "$OWNER_URL" -v ON_ERROR_STOP=1 -q -f "$file"; done
+   ```
+
+   The first migration creates the role `sentrapedia_runtime`, which owns nothing and cannot bypass row-level security.
+
+3. Give that role a password that exists only on this machine. Type it at the prompt; never write it in a tracked file:
+
+   ```bash
+   psql "$OWNER_URL" -c "\password sentrapedia_runtime"
+   ```
+
+4. Optional: add the dummy rows from `db/seed.dev.sql` (one fictional account with one template; safe to run twice):
+
+   ```bash
+   psql "$OWNER_URL" -v ON_ERROR_STOP=1 -q -f db/seed.dev.sql
+   ```
+
+5. Point the app at the database as the runtime role, in `.env.local` (git-ignored). Replace the placeholder with the password from step 3:
+
+   ```bash
+   SENTRAPEDIA_DATABASE_URL=postgres://sentrapedia_runtime:<local-password>@127.0.0.1:5432/sentrapedia_local
+   ```
+
+6. Check the isolation. Connected as `sentrapedia_runtime`, an account sees only its own rows:
+
+   ```sql
+   begin; select set_config('app.user_id', 'user_seed0001', true); select count(*) from profile; commit;  -- 1
+   begin; select set_config('app.user_id', 'user_other0001', true); select count(*) from profile; commit; -- 0
+   ```
+
+Never point `OWNER_URL` or the seed at the production database. `tests/local-database.test.ts` keeps this section and the seed in step with the migrations; it reads the files as text and needs no database server. What is not covered here: the app talking to this database end to end, which needs Clerk sign-in.
