@@ -52,7 +52,8 @@ test('every public path is preserved and only reviewed runtime bundles change by
     .replace('<script id="jquery-migrate-js" src="assets/vendor/jquery-migrate.min.js?ver=3.4.1" defer>', '<script id="jquery-migrate-js" src="assets/vendor/jquery-migrate.min.js?ver=3.4.1">')
     .replace('<script id="bootstrap-js" src="/vendor/cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer>', '<script id="bootstrap-js" src="/vendor/cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">')
     .replace('<script id="slick-js" src="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js" defer>', '<script id="slick-js" src="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js">')
-    .replace('<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3" defer>', '<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3">');
+    .replace('<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3" defer>', '<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3">')
+    .replace('<h2 class="section-subtitle h5">Alur Kerja</h2>', '<h5 class="section-subtitle">Alur Kerja</h5>');
   actual.find(entry => entry.path === 'index.html').sha256 = createHash('sha256').update(restored).digest('hex');
   assert.deepEqual(actual.map(entry => entry.path), expected.map(entry => entry.path));
   const runtime = new Set(['media/design-audit.js', 'media/hero-workspace.js', 'media/capability-explorer.js', 'media/clinical-video.js', 'media/workflow-playback.js', 'privasi/index.html']); // Privacy copy is independently reviewed for the opt-in analytics change.
@@ -65,6 +66,8 @@ test('every public path is preserved and only reviewed runtime bundles change by
     'media/clinical-video.css', 'media/faq.css', 'media/legal.css', 'media/ruang-kerja.css', 'media/sejarah-sentra.css',
     // An early observer starts the film's download before playback is due (media/clinical-video.js is a runtime bundle above).
     'media/product-film.js',
+    // Accessibility: the 11 px card numbers and the FIG. label use the approved action colour #13786e (5.0:1 or better).
+    'media/capability-explorer.css', 'media/capability-anatomy.css',
   ]);
   const reviewed = entry => !runtime.has(entry.path) && !performance20261121.has(entry.path);
   assert.deepEqual(actual.filter(reviewed), expected.filter(reviewed));

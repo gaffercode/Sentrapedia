@@ -60,7 +60,7 @@
     },
     {
       "path": "assets/clinical-video.js",
-      "sha256": "a4d429fcbcc6b1a74f896efbfa6e5bb63e540546f3c5f0dab00ea39efd2a9d3f"
+      "sha256": "160d75c52a8a59e33e0923f4a613648d07c69bd27ff906908039fa9cf70cac39"
     },
     {
       "path": "assets/design-audit.css",
@@ -292,7 +292,7 @@
     },
     {
       "path": "source/index.html",
-      "sha256": "db38ac027cecd467a6d8ded5a62ef783993b985c2fa97ec796307b24e8cc2500"
+      "sha256": "2698e042002ad42167fa8760273bec52a659806b531807bcb163c9096695a489"
     },
     {
       "path": "assets/system-anatomy.css",
@@ -320,7 +320,7 @@
     },
     {
       "path": "assets/capability-explorer.css",
-      "sha256": "1ee47b64aa845f63370720f929a058553f1e40b7c3f09ee71da1c1a797f4be62"
+      "sha256": "70de4784f04ff39c4ffd5f73d7a18e28e38801b4bf14adbaac4447d98576bf42"
     },
     {
       "path": "assets/capability-explorer.js",
@@ -344,7 +344,7 @@
     },
     {
       "path": "assets/capability-anatomy.css",
-      "sha256": "e0ead961a9c555892a6c89d1bcf1b234881c827ddc9bd495d0c9f33ad13af467"
+      "sha256": "76ba43d0641aef3a4f480c06d9637e2de371eb6527e64fec7ab6393f43483c1a"
     },
     {
       "path": "assets/capability-anatomy.js",
