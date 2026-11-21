@@ -3,6 +3,8 @@ export const pages = ['/', '/faq/', '/privasi/', '/ketentuan/', '/penafian/', '/
 
 export function googleHead(html, pathname) {
   const canonical = origin + pathname;
+  const hasDescription = /<meta\b[^>]*name=["']description["']/i.test(html);
+  const description = 'Sentrapedia membantu dokter menata konteks, mengeksplorasi pengetahuan, dan menyusun dokumentasi klinis. Setiap keluaran ditinjau oleh dokter.';
   const hadCanonical = /<link\b[^>]*rel=["']canonical["'][^>]*>/i.test(html);
   const clean = html.replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, `<link rel="canonical" href="${canonical}" />`);
   const schema = pathname === '/' ? `<script type="application/ld+json">${JSON.stringify({
@@ -11,6 +13,7 @@ export function googleHead(html, pathname) {
   })}</script>` : '';
   return clean.replace('</head>', `<!-- google-site:start -->
 ${hadCanonical ? '' : `<link rel="canonical" href="${canonical}">`}
+${hasDescription ? '' : `<meta name="description" content="${description}">`}
 <meta property="og:site_name" content="Sentrapedia">
 <meta property="og:url" content="${canonical}">
 <meta name="google-site-verification" content="iH8sws19Xwk2OQx5CdXmzGUpyqHlZFFIqL0u0mcTDvU">

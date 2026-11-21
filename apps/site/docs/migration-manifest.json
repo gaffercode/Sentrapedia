@@ -512,7 +512,7 @@
     },
     {
       "path": "scripts/google-site.mjs",
-      "sha256": "6edfde6bad2b31bd22e0dde8242bb47d705a881b71ad70c83a87400ccb7e6e19"
+      "sha256": "e8097333244eef7691bc36a6b4614c3da3cc165d45f585c2ce6ec8b8fcc7cc97"
     },
     {
       "path": "static/media/site-analytics.css",
