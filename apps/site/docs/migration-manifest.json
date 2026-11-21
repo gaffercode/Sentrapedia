@@ -505,6 +505,10 @@
     {
       "path": "scripts/browser/playback-listeners.js",
       "sha256": "5d74d014d75ac3c2faaced91f24e3d2ec4fc1924df5de6e7503b25f5d52ff934"
+    },
+    {
+      "path": "static/google657b7800c1a4e83e.html",
+      "sha256": "48e1e72b0cc56b09e519cd2e49dae2206f0835ff10e96440c23abfae29a703cb"
     }
   ]
 }
