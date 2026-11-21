@@ -51,7 +51,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | `tests/lfs-media.node-test.mjs` | Tracked MP4, WebM and WebP files are LFS pointers; `ci.yml` keeps its LFS cache and pointer check; `.gitattributes` rules |
 | `tests/beta-access-operator.node-test.mjs` | `scripts/beta-access-core.mjs`: input validation, disable-then-revoke ordering, partial failure, secret redaction, with an injected provider |
 | `tests/release-workflow.node-test.mjs` | `scripts/release-publication.mjs` and `split-release-artifact.mjs`; the `docker` job's `if` conditions evaluated in a JavaScript sandbox (not by GitHub Actions) for forks, public mirrors, case changes and main pushes |
-| `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked |
+| `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked. Judged from the capsule alone: files are read from disk and the ignore rules are tested in an empty temporary repository, so an enclosing repository cannot change the result |
 
 ## Inventory: site tests and engine tests
 
@@ -101,7 +101,7 @@ Prerequisites: `lfs-media` and `export-split` need `git`; `scripts.node-test` ne
 
 ## Reproducing CI locally
 
-`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `node scripts/install-theoracle-index.mjs` (needs a GitHub token; without it the index tests skip); `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
+`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
 
 ## Not verified
 

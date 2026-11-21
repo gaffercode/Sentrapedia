@@ -23,7 +23,7 @@
 
 - `gaffercode/Sentrapedia` is public and holds code only; the private data stays in the monorepo and on the beta server. It is filled only through `node scripts/export-split.mjs <empty folder>`, whose `public/` output is copied over the public clone and committed there.
 - Public clone (Gaffer's workstation): `D:/DEV/sentrapedia-release-2026-11-18/public`, remote `origin` = `https://github.com/gaffercode/Sentrapedia.git`.
-- The monorepo has no remote to the public repository, and its `.husky/pre-push` refuses any push to it. Never `git subtree split` or push a monorepo branch there. `gaffercode/Sentrapedia-archive` is the private old history.
+- The monorepo has no remote to the public repository, and its `.husky/pre-push` refuses any push to it. Never `git subtree split` or push a monorepo branch there. The history before the 2026-11-18 split is private and is not kept in this repository.
 
 ## Handoff retention
 
