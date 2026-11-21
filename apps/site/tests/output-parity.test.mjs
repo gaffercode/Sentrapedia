@@ -41,5 +41,12 @@ test('every public path is preserved and only reviewed runtime bundles change by
   actual.find(entry => entry.path === 'index.html').sha256 = createHash('sha256').update(restored).digest('hex');
   assert.deepEqual(actual.map(entry => entry.path), expected.map(entry => entry.path));
   const runtime = new Set(['media/design-audit.js', 'media/hero-workspace.js', 'media/capability-explorer.js', 'media/clinical-video.js', 'media/workflow-playback.js', 'privasi/index.html']); // Privacy copy is independently reviewed for the opt-in analytics change.
-  assert.deepEqual(actual.filter(entry => !runtime.has(entry.path)), expected.filter(entry => !runtime.has(entry.path)));
+  // PageSpeed plan, approved by Gaffer on 2026-11-21 (docs/refactor-progress.md): these paths keep their URL and change bytes on purpose.
+  const performance20261121 = new Set([
+    // The word is an outline shaped from the Inter Bold each file used to embed; the mark is resampled to its drawn size.
+    'assets/theme/img/sentrapedia-wordmark-big.svg', 'assets/theme/img/sentrapedia-wordmark-compact.svg',
+    'assets/theme/img/sentrapedia-wordmark-footer.svg', 'assets/theme/img/sentrapedia-wordmark-header.svg',
+  ]);
+  const reviewed = entry => !runtime.has(entry.path) && !performance20261121.has(entry.path);
+  assert.deepEqual(actual.filter(reviewed), expected.filter(reviewed));
 });

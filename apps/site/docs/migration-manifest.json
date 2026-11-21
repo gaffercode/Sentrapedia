@@ -8,19 +8,19 @@
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-big.svg",
-      "sha256": "2578b295b9ca28f8087ee81cbb27a594cbae2cb32ed145416d8709b905770e20"
+      "sha256": "f6f8fae7cdf2008630f8809e2195cdc28856447b43a82654b69c26b2c4e134c9"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-compact.svg",
-      "sha256": "e333f84fe525ee5f6b17d4cb31b886c1dde2fba2feaa301f65c2dd776cd8609f"
+      "sha256": "3486cb0856e2d4acfb58ae5ff41513bdc29d1b3abfffd404622f7c69b7de02ac"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-footer.svg",
-      "sha256": "30dd382c21273aa0c457662bf2b000f14fa20b0eda5ea04aa2314372d83edd79"
+      "sha256": "055fc06d187b9461c80c3ae16655c77b08442c9f4da78ce2ab12b844339b5157"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-header.svg",
-      "sha256": "46fa4bb751285699fc36ab67331d86a31b412947f9e21fb53eb206b9b6258879"
+      "sha256": "e5ee25e6d27febea4c6d01e178963d6ba89908e417262508e4d891ee93731fc8"
     },
     {
       "path": "assets/clinical-note.config.mjs",
@@ -220,7 +220,7 @@
     },
     {
       "path": "reference/design-integrity.json",
-      "sha256": "09a857b18b4cbcae41d773ca906955e23bb14b7148d8814ee07d608f724a072c"
+      "sha256": "282b6f678c96d75cf1694e5462dc2c37a6628bb82e344436602b020764532b43"
     },
     {
       "path": "scripts/capability-panels.mjs",
