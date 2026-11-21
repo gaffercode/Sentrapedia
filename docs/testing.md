@@ -51,7 +51,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | `tests/lfs-media.node-test.mjs` | Tracked MP4, WebM and WebP files are LFS pointers; `ci.yml` keeps its LFS cache and pointer check; `.gitattributes` rules |
 | `tests/beta-access-operator.node-test.mjs` | `scripts/beta-access-core.mjs`: input validation, disable-then-revoke ordering, partial failure, secret redaction, with an injected provider |
 | `tests/release-workflow.node-test.mjs` | `scripts/release-publication.mjs` and `split-release-artifact.mjs`; the `docker` job's `if` conditions evaluated in a JavaScript sandbox (not by GitHub Actions) for forks, public mirrors, case changes and main pushes |
-| `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked |
+| `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked. Judged from the capsule alone: files are read from disk and the ignore rules are tested in an empty temporary repository, so an enclosing repository cannot change the result |
 
 ## Inventory: site tests and engine tests
 
