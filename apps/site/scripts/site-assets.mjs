@@ -9,5 +9,5 @@ export const assetGroups = [
   { from: 'assets', to: 'media', files: ['hero-workspace.css', 'hero-workspace.js', 'hero-film.mp4', 'hero-bridge.mp4', 'promo-vid.mp4', 'product-film.css', 'product-film.js'] },
   { from: 'assets/clinical-product', to: 'media/clinical-product', files: ['workspace.png', 'document-review.png', 'anamnesis-source.png', 'audrey-chat.png', 'human-anatomy-atlas.png', 'human-anatomy-atlas.mp4', 'human-anatomy-cutout.png'] },
   { from: 'assets', to: 'media', files: ['sentrapedia-solusi.mp4', 'gsap.min.js', 'ScrollTrigger.min.js', 'SplitText.min.js', 'DrawSVGPlugin.min.js', 'clinical-video.js', 'clinical-video.css'] },
-  { from: 'assets/fonts', to: 'media/fonts', files: ['Caveat-Variable.ttf', 'Caveat-OFL.txt'] }
+  { from: 'assets/fonts', to: 'media/fonts', files: ['Caveat-Variable.ttf', 'Caveat-Variable.woff2', 'Caveat-OFL.txt'] }
 ];

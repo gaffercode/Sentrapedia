@@ -56,7 +56,7 @@
     },
     {
       "path": "assets/clinical-video.css",
-      "sha256": "ecba60c0a6c021c69429d2a9f0f10d1284fde86d55859f664aef8d8fbcce4473"
+      "sha256": "6dc307ef42959e45f9802fef9a0afae97ace8faf76fb6e6e057c58444f6e2c93"
     },
     {
       "path": "assets/clinical-video.js",
@@ -76,7 +76,7 @@
     },
     {
       "path": "assets/faq.css",
-      "sha256": "9f656f74cea8bd3044e2e49453c85d1e63ca3dd1816ae4650dbe20b31cde974f"
+      "sha256": "9d57c97873706b45dc352ee8224ac2bf1b8f98d2e04affd25632a44aaf69af70"
     },
     {
       "path": "assets/faq.js",
@@ -120,7 +120,7 @@
     },
     {
       "path": "assets/legal.css",
-      "sha256": "d1afc56c464161e3430773ea680ec0cc654ddad9116d6fb1a300110e7a448d98"
+      "sha256": "8ba91b0b189870a703bf274d079e3c78089c3d8bcb02b87b1dcc28d2fd1fff88"
     },
     {
       "path": "assets/legal.js",
@@ -152,7 +152,7 @@
     },
     {
       "path": "assets/ruang-kerja.css",
-      "sha256": "896571f04152d4449ca20294fba4c19318c14d32ff0a5d61c95eb8c4155927e6"
+      "sha256": "11a8449429e6a355d907e56c19ce4093b6ccdcb2e2819e5249f4ccd4f29b64b7"
     },
     {
       "path": "assets/sentrapedia-solusi.mp4",
@@ -292,7 +292,7 @@
     },
     {
       "path": "source/index.html",
-      "sha256": "61c8cda85eabd6f027f7e01e32ec1f80528588a4f805039e89bb0fb4a2e666b9"
+      "sha256": "f6181e66627636dbbdeeed7c8ca40bf38e3ebcb6be25b768277d407269a26048"
     },
     {
       "path": "assets/system-anatomy.css",
@@ -372,7 +372,7 @@
     },
     {
       "path": "assets/sejarah-sentra.css",
-      "sha256": "a923094baf3763ac8eda9f4963186bc9ed6c0c03e37e6962582c316274fdce8c"
+      "sha256": "c36b18d9a78e8652a0740342d5247b0a26ac5e27744edb1b50be1f9b841b70dc"
     },
     {
       "path": "scripts/sejarah-sentra.test.mjs",
@@ -464,7 +464,7 @@
     },
     {
       "path": "scripts/site-assets.mjs",
-      "sha256": "f8259937905b2aefba9d048b8e305a92e6ef2aaf838d88d7326e46f87c81f1a8"
+      "sha256": "a6687ed87b8f1b8b2d2575138c267e046862d873b73af531b5a4ea57ba198d5f"
     },
     {
       "path": "scripts/browser-assets.mjs",
@@ -521,6 +521,26 @@
     {
       "path": "static/media/site-analytics.js",
       "sha256": "2b6af80bb81479fec93b0f57ce44a0a35cb1c6173a1facf25fe3fdf60c0c9619"
+    },
+    {
+      "path": "assets/fonts/Caveat-Variable.woff2",
+      "sha256": "303c89e11bf025b34c49362e28f0e0e36a01aade2da2d1d1354333a354cf3b7f"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-Bold.woff2",
+      "sha256": "1bc583ac227ab783db88d83d733c42364a0d5abe5fa9c564531563e8e0ce64ab"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-Regular.woff2",
+      "sha256": "156cfde7aa414188f78f1dc9fc1b62511a5b20dff6dd075a1b6f38fd2707d94c"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-SemiBold.woff2",
+      "sha256": "2f6811a8e6e3a5a77f0e9fa3c84d69d405066ff6c89cd27ffcab9bf2828d72d7"
+    },
+    {
+      "path": "static/assets/theme/fonts/bootstrap-icons-subset.woff2",
+      "sha256": "3866395570b122727a20763d348e538abfa51240e61b80696ab3875ba3988719"
     }
   ]
 }
