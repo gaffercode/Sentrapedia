@@ -392,6 +392,8 @@ cd Sentrapedia
 npm ci --workspaces=false
 ```
 
+Recommended once per clone: `git config core.hooksPath .githooks`, so a commit that stages a secret or a local data file is refused (`scripts/secret-scan.mjs`).
+
 Create `.env.local` using the keys shown in `.env.example`, or inject `GEMINI_API_KEY` into the process environment. Never commit real keys. The supervisor generates the internal AADI URL/token automatically; do not configure an external AADI checkout.
 
 ### Database not included
