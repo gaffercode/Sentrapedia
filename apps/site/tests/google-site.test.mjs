@@ -54,6 +54,7 @@ test('all public pages have one absolute canonical; sitemap contains only shippe
     assert.equal((output.match(/rel="canonical"/g) || []).length, 1);
     assert.ok(output.includes(`href="https://sentrapedia.com${pathname}"`));
     assert.ok(output.includes('/media/site-analytics.js'));
+    assert.equal((output.match(/name=["']description["']/g) || []).length, 1);
   }
   assert.equal((sitemap().match(/<url>/g) || []).length, 7);
   assert.doesNotMatch(sitemap(), /beta\.|api\/|sign-in/);
