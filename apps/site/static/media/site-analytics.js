@@ -41,33 +41,38 @@
   const panel = inPage || document.createElement('section');
   panel.className = 'analytics-choice';
   panel.setAttribute('aria-label', 'Pilihan analitik');
+  panel.setAttribute('data-nosnippet', '');
   if (!inPage) panel.innerHTML = '<h2>Izinkan analitik kunjungan?</h2><p>Google Analytics membantu kami memahami penggunaan situs. Pilihan ini opsional. Isi formulir dan data pasien tidak dikirim ke Analytics. <a href="/privasi/#pasal-5">Kebijakan privasi</a></p><div class="analytics-actions"><button type="button" data-choice="denied">Tolak</button><button type="button" data-choice="granted">Izinkan analitik</button></div>';
   const settings = document.createElement('button');
   settings.type = 'button';
   settings.className = 'analytics-settings';
   settings.textContent = 'Privasi analitik';
   settings.addEventListener('click', () => { panel.hidden = false; panel.querySelector('button').focus(); });
+  function refuse() {
+    granted = false;
+    window['ga-disable-' + id] = true;
+    tag('consent', 'update', { analytics_storage: 'denied' });
+    for (const cookie of document.cookie.split(';')) {
+      const name = cookie.trim().split('=')[0];
+      if (!/^_ga(?:_|$)/.test(name)) continue;
+      for (const domain of ['', ';domain=' + location.hostname, ';domain=.sentrapedia.com']) document.cookie = name + '=;Max-Age=0;path=/' + domain;
+    }
+  }
   function save(value) {
     try { localStorage.setItem(key, JSON.stringify({ value, time: Date.now() })); } catch { /* This visit only. */ }
     panel.hidden = true;
     if (value === 'granted') enable();
-    else {
-      granted = false;
-      window['ga-disable-' + id] = true;
-      tag('consent', 'update', { analytics_storage: 'denied' });
-      for (const cookie of document.cookie.split(';')) {
-        const name = cookie.trim().split('=')[0];
-        if (!/^_ga(?:_|$)/.test(name)) continue;
-        for (const domain of ['', ';domain=' + location.hostname, ';domain=.sentrapedia.com']) document.cookie = name + '=;Max-Age=0;path=/' + domain;
-      }
-    }
+    else refuse();
     settings.focus();
   }
   panel.querySelectorAll('[data-choice]').forEach(button => button.addEventListener('click', () => save(button.dataset.choice)));
   if (inPage) document.body.append(settings);
   else document.body.append(panel, settings);
   panel.hidden = Boolean(valid);
+  // The panel in the page can record a choice before this script has run, so a stored refusal gets the same
+  // clean-up here as one made through save().
   if (valid && choice.value === 'granted') enable();
+  else if (valid) refuse();
   document.addEventListener('click', event => {
     const link = event.target.closest('a[href]');
     if (!link) return;
