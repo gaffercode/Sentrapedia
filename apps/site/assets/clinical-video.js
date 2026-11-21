@@ -37,6 +37,14 @@
   }, { threshold: 0.2 }) : null;
   if (observer) observer.observe(frame);
   else visible = true;
+  // The film is not fetched with the page (preload="none"). Start buffering one screen before it is reached,
+  // unless the visitor asked for reduced motion: then it loads only when they press Putar.
+  const warm = observer ? new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting || reduced.matches) return;
+    video.preload = 'auto';
+    warm.disconnect();
+  }, { rootMargin: '100% 0px' }) : null;
+  warm?.observe(frame);
   listenForPlaybackChanges(reduced, sync);
   sync();
   let completeNote = () => {};
@@ -67,13 +75,17 @@
     }, context => {
       if (!context.conditions.animate) { completeNote = scrollToNote; return; }
       const splits = [];
-      function split(element, type) {
-        const result = SplitText.create(element, { type, mask: 'words', aria: 'auto' });
+      function split(element, type, aria = 'auto') {
+        const result = SplitText.create(element, { type, mask: 'words', aria });
         result.words.forEach(word => word.parentElement.classList.add('clinical-word-mask'));
         splits.push(result);
         return result;
       }
-      const title = split(root.querySelectorAll('.clinical-title-line'), 'words,chars');
+      // aria-label is not allowed on the title's <span> lines, so the heading carries the name while its lines are split.
+      const heading = root.querySelector('#clinical-title');
+      const titleLines = root.querySelectorAll('.clinical-title-line');
+      heading.setAttribute('aria-label', [...titleLines].map(line => line.textContent.trim()).join(' '));
+      const title = split(titleLines, 'words,chars', 'hidden');
       gsap.timeline({ scrollTrigger: {
         trigger: root.querySelector('.clinical-opening'), start: 'top 85%', end: 'center 40%', scrub: 0.5
       } }).from(title.chars, { yPercent: 140, autoAlpha: 0, rotation: 3, duration: 1.2, stagger: 0.035, ease: 'power3.out' });
@@ -144,13 +156,14 @@
         completeNote = scrollToNote;
         story.classList.remove('is-pinned');
         delete story.dataset.stage;
+        heading.removeAttribute('aria-label');
         splits.forEach(item => item.revert());
       };
     }, root);
     ScrollTrigger.refresh();
   });
   window.addEventListener('pagehide', event => {
-    if (!event.persisted) { motion.revert(); observer?.disconnect(); }
+    if (!event.persisted) { motion.revert(); observer?.disconnect(); warm?.disconnect(); }
     video.pause();
   });
 })();

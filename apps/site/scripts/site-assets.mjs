@@ -6,8 +6,8 @@ export const assetGroups = [
   { from: 'assets', to: 'media', files: ['human-anatomy.css', 'human-anatomy.js'] },
   { from: 'assets', to: 'media', files: ['system-anatomy.css', 'system-anatomy.js', 'system-anatomy-model.js'] },
   { from: 'assets', to: 'media', files: ['capability-explorer.css', 'capability-explorer.js', 'capability-anatomy.css', 'capability-anatomy.js', 'capability-flow.mp4', 'capability-flow-poster.jpg'] },
-  { from: 'assets', to: 'media', files: ['hero-workspace.css', 'hero-workspace.js', 'hero-film.mp4', 'hero-bridge.mp4', 'promo-vid.mp4', 'product-film.css', 'product-film.js'] },
+  { from: 'assets', to: 'media', files: ['hero-workspace.css', 'hero-workspace.js', 'hero-film.mp4', 'hero-bridge.mp4', 'promo-vid.mp4', 'promo-vid-poster.webp', 'product-film.css', 'product-film.js'] },
   { from: 'assets/clinical-product', to: 'media/clinical-product', files: ['workspace.png', 'document-review.png', 'anamnesis-source.png', 'audrey-chat.png', 'human-anatomy-atlas.png', 'human-anatomy-atlas.mp4', 'human-anatomy-cutout.png'] },
-  { from: 'assets', to: 'media', files: ['sentrapedia-solusi.mp4', 'gsap.min.js', 'ScrollTrigger.min.js', 'SplitText.min.js', 'DrawSVGPlugin.min.js', 'clinical-video.js', 'clinical-video.css'] },
-  { from: 'assets/fonts', to: 'media/fonts', files: ['Caveat-Variable.ttf', 'Caveat-OFL.txt'] }
+  { from: 'assets', to: 'media', files: ['sentrapedia-solusi.mp4', 'sentrapedia-solusi-poster.webp', 'gsap.min.js', 'ScrollTrigger.min.js', 'SplitText.min.js', 'DrawSVGPlugin.min.js', 'clinical-video.js', 'clinical-video.css'] },
+  { from: 'assets/fonts', to: 'media/fonts', files: ['Caveat-Variable.ttf', 'Caveat-Variable.woff2', 'Caveat-OFL.txt'] }
 ];

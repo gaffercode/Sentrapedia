@@ -1,5 +1,7 @@
 @font-face { font-family: 'Workspace Inter'; src: url('/assets/theme/fonts/Inter_28pt-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Workspace Inter'; src: url('/assets/theme/fonts/Inter_28pt-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+25CF, U+FEFF, U+FFFD; }
 @font-face { font-family: 'Workspace Inter'; src: url('/assets/theme/fonts/Inter_28pt-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Workspace Inter'; src: url('/assets/theme/fonts/Inter_28pt-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+25CF, U+FEFF, U+FFFD; }
 :root { --workspace-ink: #191c1c; --workspace-muted: #596361; --workspace-cyan: #13786e; --workspace-rule: #dce3e1; --workspace-tosca: #40e0d0; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

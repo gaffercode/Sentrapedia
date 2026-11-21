@@ -8,19 +8,19 @@
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-big.svg",
-      "sha256": "2578b295b9ca28f8087ee81cbb27a594cbae2cb32ed145416d8709b905770e20"
+      "sha256": "f6f8fae7cdf2008630f8809e2195cdc28856447b43a82654b69c26b2c4e134c9"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-compact.svg",
-      "sha256": "e333f84fe525ee5f6b17d4cb31b886c1dde2fba2feaa301f65c2dd776cd8609f"
+      "sha256": "3486cb0856e2d4acfb58ae5ff41513bdc29d1b3abfffd404622f7c69b7de02ac"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-footer.svg",
-      "sha256": "30dd382c21273aa0c457662bf2b000f14fa20b0eda5ea04aa2314372d83edd79"
+      "sha256": "055fc06d187b9461c80c3ae16655c77b08442c9f4da78ce2ab12b844339b5157"
     },
     {
       "path": "assets/branding/sentrapedia-wordmark-header.svg",
-      "sha256": "46fa4bb751285699fc36ab67331d86a31b412947f9e21fb53eb206b9b6258879"
+      "sha256": "e5ee25e6d27febea4c6d01e178963d6ba89908e417262508e4d891ee93731fc8"
     },
     {
       "path": "assets/clinical-note.config.mjs",
@@ -56,11 +56,11 @@
     },
     {
       "path": "assets/clinical-video.css",
-      "sha256": "ecba60c0a6c021c69429d2a9f0f10d1284fde86d55859f664aef8d8fbcce4473"
+      "sha256": "6dc307ef42959e45f9802fef9a0afae97ace8faf76fb6e6e057c58444f6e2c93"
     },
     {
       "path": "assets/clinical-video.js",
-      "sha256": "4bd12f93a4fb966e344bf9e734c8985f02834865e70efe28c4df937baf69894b"
+      "sha256": "160d75c52a8a59e33e0923f4a613648d07c69bd27ff906908039fa9cf70cac39"
     },
     {
       "path": "assets/design-audit.css",
@@ -76,7 +76,7 @@
     },
     {
       "path": "assets/faq.css",
-      "sha256": "9f656f74cea8bd3044e2e49453c85d1e63ca3dd1816ae4650dbe20b31cde974f"
+      "sha256": "9d57c97873706b45dc352ee8224ac2bf1b8f98d2e04affd25632a44aaf69af70"
     },
     {
       "path": "assets/faq.js",
@@ -120,7 +120,7 @@
     },
     {
       "path": "assets/legal.css",
-      "sha256": "d1afc56c464161e3430773ea680ec0cc654ddad9116d6fb1a300110e7a448d98"
+      "sha256": "8ba91b0b189870a703bf274d079e3c78089c3d8bcb02b87b1dcc28d2fd1fff88"
     },
     {
       "path": "assets/legal.js",
@@ -144,7 +144,7 @@
     },
     {
       "path": "assets/product-film.js",
-      "sha256": "858fc0e844b5d42b5af0ea621ec5a63bef2a4d6cb19cb03be3485f51af3c9815"
+      "sha256": "0ec724a07ecd1ba428ac5067aa708772d28133cfb0f867cae25063e19c4e6ce8"
     },
     {
       "path": "assets/promo-vid.mp4",
@@ -152,7 +152,7 @@
     },
     {
       "path": "assets/ruang-kerja.css",
-      "sha256": "896571f04152d4449ca20294fba4c19318c14d32ff0a5d61c95eb8c4155927e6"
+      "sha256": "11a8449429e6a355d907e56c19ce4093b6ccdcb2e2819e5249f4ccd4f29b64b7"
     },
     {
       "path": "assets/sentrapedia-solusi.mp4",
@@ -220,7 +220,7 @@
     },
     {
       "path": "reference/design-integrity.json",
-      "sha256": "09a857b18b4cbcae41d773ca906955e23bb14b7148d8814ee07d608f724a072c"
+      "sha256": "282b6f678c96d75cf1694e5462dc2c37a6628bb82e344436602b020764532b43"
     },
     {
       "path": "scripts/capability-panels.mjs",
@@ -292,7 +292,7 @@
     },
     {
       "path": "source/index.html",
-      "sha256": "61c8cda85eabd6f027f7e01e32ec1f80528588a4f805039e89bb0fb4a2e666b9"
+      "sha256": "2698e042002ad42167fa8760273bec52a659806b531807bcb163c9096695a489"
     },
     {
       "path": "assets/system-anatomy.css",
@@ -320,7 +320,7 @@
     },
     {
       "path": "assets/capability-explorer.css",
-      "sha256": "1ee47b64aa845f63370720f929a058553f1e40b7c3f09ee71da1c1a797f4be62"
+      "sha256": "70de4784f04ff39c4ffd5f73d7a18e28e38801b4bf14adbaac4447d98576bf42"
     },
     {
       "path": "assets/capability-explorer.js",
@@ -344,7 +344,7 @@
     },
     {
       "path": "assets/capability-anatomy.css",
-      "sha256": "e0ead961a9c555892a6c89d1bcf1b234881c827ddc9bd495d0c9f33ad13af467"
+      "sha256": "76ba43d0641aef3a4f480c06d9637e2de371eb6527e64fec7ab6393f43483c1a"
     },
     {
       "path": "assets/capability-anatomy.js",
@@ -372,7 +372,7 @@
     },
     {
       "path": "assets/sejarah-sentra.css",
-      "sha256": "a923094baf3763ac8eda9f4963186bc9ed6c0c03e37e6962582c316274fdce8c"
+      "sha256": "c36b18d9a78e8652a0740342d5247b0a26ac5e27744edb1b50be1f9b841b70dc"
     },
     {
       "path": "scripts/sejarah-sentra.test.mjs",
@@ -464,7 +464,7 @@
     },
     {
       "path": "scripts/site-assets.mjs",
-      "sha256": "f8259937905b2aefba9d048b8e305a92e6ef2aaf838d88d7326e46f87c81f1a8"
+      "sha256": "141ca513984056c752523ede93c1dac147ca7cad18bd12e85144844bddd1d9f7"
     },
     {
       "path": "scripts/browser-assets.mjs",
@@ -512,7 +512,7 @@
     },
     {
       "path": "scripts/google-site.mjs",
-      "sha256": "e8097333244eef7691bc36a6b4614c3da3cc165d45f585c2ce6ec8b8fcc7cc97"
+      "sha256": "bc2ad3b85d2aff0cd820a3b7ce532f25b1069f5eca611cd38682a5c42869d4ca"
     },
     {
       "path": "static/media/site-analytics.css",
@@ -520,7 +520,35 @@
     },
     {
       "path": "static/media/site-analytics.js",
-      "sha256": "2b6af80bb81479fec93b0f57ce44a0a35cb1c6173a1facf25fe3fdf60c0c9619"
+      "sha256": "bf96699ee3d180b6fcc9daacf425c356e7dbf9014318f6be242110b2f6ede7b1"
+    },
+    {
+      "path": "assets/fonts/Caveat-Variable.woff2",
+      "sha256": "303c89e11bf025b34c49362e28f0e0e36a01aade2da2d1d1354333a354cf3b7f"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-Bold.woff2",
+      "sha256": "1bc583ac227ab783db88d83d733c42364a0d5abe5fa9c564531563e8e0ce64ab"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-Regular.woff2",
+      "sha256": "156cfde7aa414188f78f1dc9fc1b62511a5b20dff6dd075a1b6f38fd2707d94c"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter_28pt-SemiBold.woff2",
+      "sha256": "2f6811a8e6e3a5a77f0e9fa3c84d69d405066ff6c89cd27ffcab9bf2828d72d7"
+    },
+    {
+      "path": "static/assets/theme/fonts/bootstrap-icons-subset.woff2",
+      "sha256": "3866395570b122727a20763d348e538abfa51240e61b80696ab3875ba3988719"
+    },
+    {
+      "path": "assets/promo-vid-poster.webp",
+      "sha256": "71467d8dd70026081f8cbfa309798b6dddf94f187278c3188b5e108f9ebc1eb0"
+    },
+    {
+      "path": "assets/sentrapedia-solusi-poster.webp",
+      "sha256": "cd8e833e4d26f6ea3b0bf4b3a0c33282405650d60fadaf46bde48612187d4a62"
     }
   ]
 }

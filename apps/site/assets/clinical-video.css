@@ -1,4 +1,6 @@
-@font-face { font-family: 'Clinical Caveat'; src: url('/media/fonts/Caveat-Variable.ttf') format('truetype'); font-style: normal; font-weight: 400 700; font-display: swap; }
+/* The full file names what it can draw, so a character it lacks (the arrows in the note) never fetches it; the subset after it is checked first. */
+@font-face { font-family: 'Clinical Caveat'; src: url('/media/fonts/Caveat-Variable.ttf') format('truetype'); font-style: normal; font-weight: 400 700; font-display: swap; unicode-range: U+0000-052F, U+1E00-1EFF, U+2000-209F, U+20A0-20CF, U+2100-218F, U+2200-22FF, U+27C0-27EF, U+F6C3, U+FB00-FB06; }
+@font-face { font-family: 'Clinical Caveat'; src: url('/media/fonts/Caveat-Variable.woff2') format('woff2'); font-style: normal; font-weight: 400 700; font-display: swap; unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2190-2199, U+2212, U+2215, U+25CF, U+FEFF, U+FFFD; }
 #home-bottom {
   --clinical-ink: #191c1c;
   --clinical-muted: #596361;
