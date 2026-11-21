@@ -19,7 +19,7 @@ Tests import application code from `../src/`. `tests/theoracle-aadi.test.ts` rea
 | Layer | Runner and command | Files | Environment |
 | --- | --- | --- | --- |
 | App tests | Vitest 5 (`vitest run`, the first half of `npm test`) | 42 `*.test.ts[x]` files in `tests/` and 17 in `tests/ui/` | Node by default; jsdom where a file starts with the `@vitest-environment` docblock (all of `tests/ui/`, plus a few others) |
-| System tests | `node --test`, `npm run test:system` | Eight `tests/*.node-test.mjs` files, named one by one in `package.json` | Plain Node; some build temporary capsules, local HTTP stubs or temporary git repositories |
+| System tests | `node --test`, `npm run test:system` | Nine `tests/*.node-test.mjs` files, named one by one in `package.json` | Plain Node; some build temporary capsules, local HTTP stubs or temporary git repositories |
 | Site tests | `npm --prefix apps/site test` (second half of `npm test`): builds the site, then `node --test` in `apps/site` | 8 files in `apps/site/tests/`, 13 `*.test.mjs` files in `apps/site/scripts/` | Built-in Node modules only |
 | Engine tests | `npm run test:aadi` runs `scripts/test-aadi.mjs`, which starts the venv Python on `aadi/test.py`, which runs pytest on `aadi/service/tests` | 9 files | Python 3.11 venv in `.runtime/aadi/venv`, model client always a fake |
 | Static gates | `lint`, `typecheck`, ruff, `npm audit`, `deploy:dry-run`, `site:verify`, `site:docs` | not test files | see VERIFICATION (private, not in the public repository) |
@@ -36,6 +36,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | Closed beta and auth | `beta-auth`, `beta-auth-routes`, `beta-auth-proxy`, `beta-auth-pages.test.tsx`, `auth-headers`, `clerk-webhook`, `user-access-flow.test.tsx` | Configuration resolution, server-owned access and consent decisions, `/api/aadi` authorization, proxy behaviour and browser hardening, the CSP, the `user.deleted` webhook, and the self-service access flow. Clerk and Next modules are replaced with `vi.mock` |
 | Workspace data | `workspace`, `workspace-session`, `workspace-storage`, `workspace-fixtures`, `workflow` | The reducer, validation, restore and the unreadable-backup path, principal-owned storage keys, frozen saved workspaces, personal templates, revisions and review guards, keyboard shortcuts |
 | Sync | `sync-guard`, `sync-merge`, `sync-messages`, `sync-principal`, `sync-schema` | De-identified projection before upload, add-only merge on pull, Indonesian messages, the sync principal, and the SQL migrations read as text (forced row-level security, a non-owner runtime role, the exact table set). No database is contacted |
+| Local database | `local-database` | `db/seed.dev.sql` writes only to tables the migrations create, seeds only the fictional account inside a transaction that names it as the principal and can run twice; `docs/data.md` keeps the step-by-step setup |
 | Drafting and templates | `studio`, `hpi-draft`, `other-notes`, `normal-exam` | Modes and intent groups, template pack, local note builders, Indonesian wording, normal-exam templates |
 | Layout and design | `document-pane`, `nav-tree`, `smooth`, `layout-constants`, `design-tokens`, `cabinet-figure`, `site-product-film` | Pane logic, keyboard movement, view-transition helpers, breakpoints shared by JS and CSS, WCAG contrast of the colour tokens, the cabinet figure, and the site promo film script (a root test of a site asset) |
 | React components (`tests/ui/`, jsdom) | `agent-settings`, `analysis-document`, `analysis-mode-switch`, `auth-design`, `beta-auth`, `chip-row`, `composer-plain`, `document-pane`, `document-table`, `draft-actions`, `encounter-overview`, `guideline-citations`, `message-card`, `normal-exam`, `sidebar-menu`, `thinking-card`, `workspace-smoke` | Rendering and interaction of those components with Testing Library: the chip row, plain composer, sidebar and account menu, document pane and tables, message cards, idle lock and passkey nudge, local draft on analysis failure. `workspace-smoke` mounts the workspace page with mocks |
@@ -52,6 +53,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | `tests/beta-access-operator.node-test.mjs` | `scripts/beta-access-core.mjs`: input validation, disable-then-revoke ordering, partial failure, secret redaction, with an injected provider |
 | `tests/release-workflow.node-test.mjs` | `scripts/release-publication.mjs` and `split-release-artifact.mjs`; the `docker` job's `if` conditions evaluated in a JavaScript sandbox (not by GitHub Actions) for forks, public mirrors, case changes and main pushes |
 | `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked. Judged from the capsule alone: files are read from disk and the ignore rules are tested in an empty temporary repository, so an enclosing repository cannot change the result |
+| `tests/secret-scan.node-test.mjs` | `scripts/secret-scan.mjs` run for real in a temporary Git repository: a staged token, private key, filled secret, real-looking database password, local env file, key file or database file is refused and never echoed; placeholders, hashes and marked examples pass; `--staged` reads only the index |
 
 ## Inventory: site tests and engine tests
 
@@ -101,7 +103,7 @@ Prerequisites: `lfs-media` and `export-split` need `git`; `scripts.node-test` ne
 
 ## Reproducing CI locally
 
-`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
+`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `node scripts/secret-scan.mjs`; `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
 
 ## Not verified
 
@@ -111,3 +113,7 @@ Prerequisites: `lfs-media` and `export-split` need `git`; `scripts.node-test` ne
 - That `theoracle-grounding`'s real-index test skips (rather than fails) when the vectors exist but the local model is missing.
 - The product is for consultations without patient identity (`.agents/DECISIONS.md`, 2026-10-26; documents aligned 2026-11-16, except `LICENSE`, `capsule.json` and `project.contract.json`). The identity checks are covered by the parity fixture and the gate tests above.
 - The missing-index message in code is "Database Oracle belum terpasang di server ini. Analisis tidak dijalankan." (`tests/public-data.test.ts`); it appears when `manifest.json` is missing.
+
+## Secret scan before a commit
+
+`scripts/secret-scan.mjs` refuses secrets (token formats, private keys, JSON Web Tokens, database URLs with a password, filled secrets in configuration files) and local data files (env files, keys, databases, dumps). CI runs it over every tracked file. To run it before each commit on your own clone, once: `git config core.hooksPath .githooks`. It never prints the value it found. A deliberate, harmless example line can carry the marker `secret-scan:allow`.
