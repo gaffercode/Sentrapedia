@@ -190,3 +190,14 @@ test('each film starts buffering before it plays, never with the page and never 
   assert.match(await readFile(new URL('media/product-film.js', site), 'utf8'), /intersectionRatio >= \.3;[\s\S]*?\{ threshold: \.3 \}/);
   assert.match(await readFile(new URL('media/clinical-video.js', site), 'utf8'), /visible = entries\[0\]\.isIntersecting;[\s\S]*?\{ threshold: 0\.2 \}/);
 });
+
+test('no external script blocks parsing, and the theme scripts keep their order', async () => {
+  // Before: jQuery, jQuery Migrate, Bootstrap, Slick and the theme script sat in <head> without defer; the review
+  // estimated 1,590 ms of render blocking on mobile, part of it theirs. Deferred scripts still run in document order.
+  const html = await readFile(new URL('index.html', site), 'utf8');
+  const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)].map(match => match[0]);
+  for (const tag of scripts) assert.match(tag, /\sdefer\b|type="module"/, `parser-blocking script: ${tag}`);
+  assert.deepEqual(scripts.slice(0, 5).map(tag => /id="([^"]+)"/.exec(tag)?.[1]), ['jquery-core-js', 'jquery-migrate-js', 'bootstrap-js', 'slick-js', 'custom-js']);
+  // Nothing inline may call jQuery while the page is still being parsed.
+  for (const [, body] of html.matchAll(/<script\b(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/g)) assert.doesNotMatch(body, /\bjQuery\b|\$\(/);
+});

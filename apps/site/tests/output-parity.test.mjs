@@ -46,7 +46,12 @@ test('every public path is preserved and only reviewed runtime bundles change by
     // PageSpeed plan approved by Gaffer on 2026-11-21; each line below removes exactly one approved homepage edit.
     .replace(/\n<style id="site-fonts-css">\n(?:@font-face \{[^}]*\}\n){4}<\/style>/, '')
     .replace('<video class="product-film-video" muted playsinline loop preload="none" poster="/media/promo-vid-poster.webp">', '<video class="product-film-video" muted playsinline loop preload="metadata">')
-    .replace('<video muted playsinline loop preload="none" poster="/media/sentrapedia-solusi-poster.webp" aria-label=', '<video muted playsinline loop preload="metadata" aria-label=');
+    .replace('<video muted playsinline loop preload="none" poster="/media/sentrapedia-solusi-poster.webp" aria-label=', '<video muted playsinline loop preload="metadata" aria-label=')
+    .replace('<script id="jquery-core-js" src="assets/vendor/jquery.min.js?ver=3.7.1" defer>', '<script id="jquery-core-js" src="assets/vendor/jquery.min.js?ver=3.7.1">')
+    .replace('<script id="jquery-migrate-js" src="assets/vendor/jquery-migrate.min.js?ver=3.4.1" defer>', '<script id="jquery-migrate-js" src="assets/vendor/jquery-migrate.min.js?ver=3.4.1">')
+    .replace('<script id="bootstrap-js" src="/vendor/cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer>', '<script id="bootstrap-js" src="/vendor/cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">')
+    .replace('<script id="slick-js" src="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js" defer>', '<script id="slick-js" src="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js">')
+    .replace('<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3" defer>', '<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3">');
   actual.find(entry => entry.path === 'index.html').sha256 = createHash('sha256').update(restored).digest('hex');
   assert.deepEqual(actual.map(entry => entry.path), expected.map(entry => entry.path));
   const runtime = new Set(['media/design-audit.js', 'media/hero-workspace.js', 'media/capability-explorer.js', 'media/clinical-video.js', 'media/workflow-playback.js', 'privasi/index.html']); // Privacy copy is independently reviewed for the opt-in analytics change.
