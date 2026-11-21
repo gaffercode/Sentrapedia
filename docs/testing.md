@@ -19,7 +19,7 @@ Tests import application code from `../src/`. `tests/theoracle-aadi.test.ts` rea
 | Layer | Runner and command | Files | Environment |
 | --- | --- | --- | --- |
 | App tests | Vitest 5 (`vitest run`, the first half of `npm test`) | 42 `*.test.ts[x]` files in `tests/` and 17 in `tests/ui/` | Node by default; jsdom where a file starts with the `@vitest-environment` docblock (all of `tests/ui/`, plus a few others) |
-| System tests | `node --test`, `npm run test:system` | Six `tests/*.node-test.mjs` files, named one by one in `package.json` | Plain Node; some build temporary capsules, local HTTP stubs or temporary git repositories |
+| System tests | `node --test`, `npm run test:system` | Eight `tests/*.node-test.mjs` files, named one by one in `package.json` | Plain Node; some build temporary capsules, local HTTP stubs or temporary git repositories |
 | Site tests | `npm --prefix apps/site test` (second half of `npm test`): builds the site, then `node --test` in `apps/site` | 8 files in `apps/site/tests/`, 13 `*.test.mjs` files in `apps/site/scripts/` | Built-in Node modules only |
 | Engine tests | `npm run test:aadi` runs `scripts/test-aadi.mjs`, which starts the venv Python on `aadi/test.py`, which runs pytest on `aadi/service/tests` | 9 files | Python 3.11 venv in `.runtime/aadi/venv`, model client always a fake |
 | Static gates | `lint`, `typecheck`, ruff, `npm audit`, `deploy:dry-run`, `site:verify`, `site:docs` | not test files | see VERIFICATION (private, not in the public repository) |
@@ -47,9 +47,11 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | `tests/system-runtime.node-test.mjs` | Launcher helpers in `scripts/aadi-runtime.mjs`: restart backoff and the five-crash limit, engine environment built from `scripts/aadi-profile.json` despite inherited settings, key required without echoing it, readiness check, preflight with an injected fetch, warm-up, venv stamp against the lock, model pin against the manifest, the install skip switches, the Windows guardian job (skipped off Windows) |
 | `tests/scripts.node-test.mjs` | Scripts run for real in temporary capsules: `deploy-dry-run`, `build-system` (with a stub Next), `build-theoracle-index` (stub model: append, resume, hash refusal), the chunk build against its pinned hash, the index installer and publisher guards, the pipeline eval against a local HTTP stub, the npm wrapper, the benchmark's module list, SSOT dose-line rendering |
 | `tests/export-split.node-test.mjs` | Private path list, the public and data trees, refusal of a non-empty or in-capsule output and of LFS pointers |
+| `tests/leak-guard.node-test.mjs` | `scripts/leak-guard.mjs`: each planted leak in a temporary tree is found; a clean public tree and a clean private build pass |
 | `tests/lfs-media.node-test.mjs` | Tracked MP4, WebM and WebP files are LFS pointers; `ci.yml` keeps its LFS cache and pointer check; `.gitattributes` rules |
 | `tests/beta-access-operator.node-test.mjs` | `scripts/beta-access-core.mjs`: input validation, disable-then-revoke ordering, partial failure, secret redaction, with an injected provider |
 | `tests/release-workflow.node-test.mjs` | `scripts/release-publication.mjs` and `split-release-artifact.mjs`; the `docker` job's `if` conditions evaluated in a JavaScript sandbox (not by GitHub Actions) for forks, public mirrors, case changes and main pushes |
+| `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked |
 
 ## Inventory: site tests and engine tests
 
