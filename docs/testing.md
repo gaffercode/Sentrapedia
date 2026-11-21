@@ -101,7 +101,7 @@ Prerequisites: `lfs-media` and `export-split` need `git`; `scripts.node-test` ne
 
 ## Reproducing CI locally
 
-`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `node scripts/install-theoracle-index.mjs` (needs a GitHub token; without it the index tests skip); `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
+`.github/workflows/ci.yml` job `check`, in order, on Ubuntu with Node 24 and Python 3.11: pull LFS objects and fail on any pointer; `npm ci`; `npm audit --omit=dev --audit-level=high`; `npm run lint`; `pipx run ruff==0.17.1 check aadi`; `npm run typecheck`; `npm run test:all`; `npm run site:verify`; `npm run site:docs`; `npm run build`; `npm run deploy:dry-run`. Job `docker` builds the image with the publishable key as a build argument and uses no model. Real secrets and registry publishing are out of reach locally by design.
 
 ## Not verified
 
