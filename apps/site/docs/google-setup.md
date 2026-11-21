@@ -27,7 +27,17 @@ The build emits `robots.txt`, an XML sitemap containing the seven shipped public
 
 ## Verification
 
-Local checks on 21 November 2026: 56 site tests pass; authored JavaScript syntax passes; presentation verifier reports 22 protected files unchanged and zero errors; 96-document SPDS check and deploy dry-run pass. Consent tests verify no tag before consent, rejection, expiration, preview exclusion, URL redaction and withdrawal. This local evidence does not establish live collection or indexing; verify the deployed tag, sitemap submission and Analytics reception separately.
+Local checks on 21 November 2026: 56 site tests pass; authored JavaScript syntax passes; presentation verifier reports 22 protected files unchanged and zero errors; 96-document SPDS check and deploy dry-run pass. Consent tests verify no tag before consent, rejection, expiration, preview exclusion, URL redaction and withdrawal.
+
+Production evidence on 21 November 2026:
+
+- PR #12 merged; production deployment `dpl_4cem7kw76pJJXHPVtYonFooNGS14` READY for commit `27260ef8cb66e3a92fa9b5a2da28eb00e7d1d229`. Both CI check and Docker build succeeded for the PR head.
+- Seven sitemap URLs return HTTP 200 with one correct canonical and one local analytics loader each. Verification file, robots.txt and analytics script return HTTP 200.
+- Browser DOM: zero Google tag scripts before consent; granting consent inserts `gtag/js?id=G-XKM0Q1GQCL`; withdrawing consent and reloading results in zero Google tag scripts.
+- GA4 Realtime shows one active user, the Sentrapedia page, and `page_view`, `first_visit`, `session_start`. This proves receipt of the test visit, not long-term reporting completeness.
+- `generate_lead` registered as a key event, with no assigned monetary value. Live lead delivery was not fabricated or sent merely to test Analytics; accepted-contact behavior is covered locally.
+- Search Console sitemap `/sitemap.xml`: Success, seven discovered pages. robots.txt recrawl requested. Homepage indexing request accepted into Google's priority crawl queue; actual indexing remains pending.
+- PageSpeed mobile lab baseline: Performance 83, Accessibility 92, Best Practices 100, SEO 92; LCP 2.7 seconds, TBT 20 ms, CLS 0. Field data unavailable. The missing meta description was subsequently corrected; the baseline scores are not a claim about the later build. No visual redesign or performance rewrite was included.
 
 ## Maintenance
 
