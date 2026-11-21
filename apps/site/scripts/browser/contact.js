@@ -33,6 +33,7 @@ function initContact() {
         });
         const result = await response.json();
         if (!response.ok || result.status !== 'accepted') throw new Error(result.message || 'Layanan pengiriman belum tersedia.');
+        document.dispatchEvent(new Event('sentrapedia:contact-accepted'));
         form.reset();
         delete form.dataset.attempted;
         status.dataset.state = 'success';

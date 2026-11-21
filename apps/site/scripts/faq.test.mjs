@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createServer } from './serve.mjs';
+import { googleHead } from './google-site.mjs';
 
 test('FAQ route serves its source, accessible native disclosures and local dependencies', async () => {
   const source = await fs.readFile(new URL('../source/faq/index.html', import.meta.url), 'utf8');
@@ -13,7 +14,7 @@ test('FAQ route serves its source, accessible native disclosures and local depen
       const response = await fetch(base + route);
       assert.equal(response.status, 200, route);
       assert.match(response.headers.get('content-type'), /text\/html/);
-      assert.equal(await response.text(), source);
+      assert.equal(await response.text(), googleHead(source, '/faq/'));
     }
     const disclosures = [...source.matchAll(/<details\b[^>]*>([\s\S]*?)<\/details>/g)];
     assert.ok(disclosures.length >= 7);

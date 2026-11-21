@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { renderHomepage } from './render-homepage.mjs';
 import { assetGroups } from './site-assets.mjs';
 import { browserParts, assembleBrowserScript } from './browser-assets.mjs';
+import { googleHead, pages, sitemap } from './google-site.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const site = path.resolve(process.argv[2] ?? path.join(root, 'site'));
 await fs.rm(site, { recursive: true, force: true });
@@ -55,4 +56,10 @@ for (const filename of await fs.readdir(path.join(root, 'assets/branding'))) {
 for (const filename of Object.keys(browserParts)) {
   await fs.writeFile(path.join(site, 'media', filename), await assembleBrowserScript(root, filename));
 }
+for (const pathname of pages) {
+  const filename = path.join(site, pathname, 'index.html');
+  await fs.writeFile(filename, googleHead(await fs.readFile(filename, 'utf8'), pathname));
+}
+await fs.writeFile(path.join(site, 'sitemap.xml'), sitemap());
+await fs.writeFile(path.join(site, 'robots.txt'), 'User-agent: *\nAllow: /\nSitemap: https://sentrapedia.com/sitemap.xml\n');
 console.log('Sentrapedia homepage and media refreshed.');
