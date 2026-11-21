@@ -6,3 +6,5 @@
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.webm filter=lfs diff=lfs merge=lfs -text
 *.webp filter=lfs diff=lfs merge=lfs -text
+# The commit hooks are shell scripts: they keep LF line endings on every platform.
+/.githooks/* text eol=lf

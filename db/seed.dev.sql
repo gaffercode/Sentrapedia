@@ -8,6 +8,10 @@ begin;
 -- Row-level security is forced on every table, so the fictional account is named as the principal first.
 do $$
 begin
+  -- A safety net, not a guarantee: stop when this looks like a database in real use.
+  if current_database() !~* '(local|test|qa|dev|review|sandbox)' and exists (select 1 from profile where user_id <> 'user_seed0001') then
+    raise exception 'Refusing to seed database "%": it holds accounts and its name does not say local, test, qa, dev, review or sandbox.', current_database();
+  end if;
   perform set_config('app.user_id', 'user_seed0001', true);
 end
 $$;

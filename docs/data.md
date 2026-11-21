@@ -63,7 +63,7 @@ The local workspace runs without any database. The account database matters only
 1. Create an empty database and name the owner connection. The owner runs migrations only:
 
    ```bash
-   createdb sentrapedia_local
+   createdb -U postgres -h 127.0.0.1 sentrapedia_local
    export OWNER_URL=postgres://postgres@127.0.0.1:5432/sentrapedia_local
    ```
 
@@ -81,7 +81,7 @@ The local workspace runs without any database. The account database matters only
    psql "$OWNER_URL" -c "\password sentrapedia_runtime"
    ```
 
-4. Optional: add the dummy rows from `db/seed.dev.sql` (one fictional account with one template; safe to run twice):
+4. Optional: add the dummy rows from `db/seed.dev.sql` (one fictional account with one template; safe to run twice). The seed stops when the database already holds other accounts and its name does not say local, test, qa, dev, review or sandbox:
 
    ```bash
    psql "$OWNER_URL" -v ON_ERROR_STOP=1 -q -f db/seed.dev.sql
