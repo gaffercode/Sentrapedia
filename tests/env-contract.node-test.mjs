@@ -44,6 +44,13 @@ function variablesReadByNodeSide() {
       const name = dotted ?? bracketed;
       if (!PLATFORM.test(name) && !names.has(name)) names.set(name, file);
     }
+    // const { A, B: alias } = process.env
+    for (const [, body] of text.matchAll(/\{([^{}]*)\}\s*=\s*process\.env\b/g)) {
+      for (const part of body.split(",")) {
+        const name = part.split(/[:=]/)[0].trim();
+        if (/^[A-Z][A-Z0-9_]*$/.test(name) && !PLATFORM.test(name) && !names.has(name)) names.set(name, file);
+      }
+    }
   }
   return names;
 }
@@ -99,6 +106,11 @@ test(".gitignore keeps local env files, databases, dumps, backups and keys out o
     "apps/site/.env",
     ".neon",
     "data.sqlite",
+    "local.db-wal",
+    "local.sqlite-journal",
+    ".envrc",
+    "dump.sql",
+    "prod-backup.sql",
     "local.sqlite3",
     "dev.db",
     "prod.dump",
@@ -116,5 +128,6 @@ test(".gitignore keeps local env files, databases, dumps, backups and keys out o
 });
 
 test(".gitignore still lets .env.example and the SQL migrations be committed", { skip }, () => {
-  assert.deepEqual(ignoredByThisCapsule([".env.example", "db/migrations/0001_account_and_templates.sql"]), []);
+  // A migration or a route whose name merely contains "backup" or "dump" must not vanish from Git.
+  assert.deepEqual(ignoredByThisCapsule([".env.example", "db/migrations/0001_account_and_templates.sql", "db/migrations/0006_backup_codes.sql", "src/app/backups/page.tsx", "src/dumps/index.ts"]), []);
 });

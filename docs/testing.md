@@ -53,7 +53,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | `tests/beta-access-operator.node-test.mjs` | `scripts/beta-access-core.mjs`: input validation, disable-then-revoke ordering, partial failure, secret redaction, with an injected provider |
 | `tests/release-workflow.node-test.mjs` | `scripts/release-publication.mjs` and `split-release-artifact.mjs`; the `docker` job's `if` conditions evaluated in a JavaScript sandbox (not by GitHub Actions) for forks, public mirrors, case changes and main pushes |
 | `tests/env-contract.node-test.mjs` | Every environment variable the Node side reads is named in `.env.example`, which holds no key, token, secret or password value; `.gitignore` blocks env files, local databases, dumps, backups and key files while the SQL migrations stay tracked. Judged from the capsule alone: files are read from disk and the ignore rules are tested in an empty temporary repository, so an enclosing repository cannot change the result |
-| `tests/secret-scan.node-test.mjs` | `scripts/secret-scan.mjs` run for real in a temporary Git repository: a staged token, private key, filled secret, real-looking database password, local env file, key file or database file is refused and never echoed; placeholders, hashes and marked examples pass; `--staged` reads only the index |
+| `tests/secret-scan.node-test.mjs` | `scripts/secret-scan.mjs` run for real in a temporary Git repository: 12 tests: tokens and provider keys, private keys, URLs with a password, filled secrets (also short, letters-only and lower-case), database dumps, env files, key files, databases and data exports are refused and never echoed; placeholders, templates, hashes and marked examples pass; the allow file must be tracked and exact; UTF-16 text is read and unread files are named; `--staged` reads only the index |
 
 ## Inventory: site tests and engine tests
 
@@ -116,4 +116,11 @@ Prerequisites: `lfs-media` and `export-split` need `git`; `scripts.node-test` ne
 
 ## Secret scan before a commit
 
-`scripts/secret-scan.mjs` refuses secrets (token formats, private keys, JSON Web Tokens, database URLs with a password, filled secrets in configuration files) and local data files (env files, keys, databases, dumps). CI runs it over every tracked file. To run it before each commit on your own clone, once: `git config core.hooksPath .githooks`. It never prints the value it found. A deliberate, harmless example line can carry the marker `secret-scan:allow`.
+`scripts/secret-scan.mjs` needs only Node and Git and never prints the value it found.
+
+- **Refuses:** known token formats (Gemini and Google, OpenAI and OpenRouter, Anthropic, Clerk and Stripe secret keys, Resend, Dify, Supabase, GitHub, npm, AWS, Slack, webhook signing secrets, JSON Web Tokens), private keys, URLs that carry a password, filled secrets in configuration files (a name ending in `KEY`, `TOKEN`, `SECRET`, `PASSWORD` or `PASSCODE`), database dumps by their header, and by name: env files, key files, databases and data exports (spreadsheets, CSV and similar).
+- **Cannot do:** tell real data from sample data inside an ordinary text, JSON or SQL file, or recognise a secret that has no known shape. It is a net, not a proof; review still decides.
+- **When it runs:** CI runs it over every tracked file on each push, which is after the push is already public. To stop a secret before it leaves your machine, activate the hook once per clone: `git config core.hooksPath .githooks`. The folder also holds the four Git LFS hooks, so LFS keeps working after that switch. Inside the monorepo, leave its own hooks path alone and call the script from there.
+- **Exceptions are visible:** a line may end with a comment holding `secret-scan:allow`; a tracked `.secret-scan-allow` file may list exact paths or folders ending in `/`. Env files can never be listed. Every exception used is counted in the output.
+
+For blocking at GitHub itself, turn on secret scanning push protection in the repository settings; that is the owner's switch and is independent of this script.
