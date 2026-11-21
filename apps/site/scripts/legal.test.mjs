@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createServer } from './serve.mjs';
+import { googleHead } from './google-site.mjs';
 
 const pages = ['privasi', 'ketentuan', 'penafian'];
 
@@ -17,11 +18,11 @@ test('legal pages serve their source, cross-link each other and stay local', asy
         const response = await fetch(base + route);
         assert.equal(response.status, 200, route);
         assert.match(response.headers.get('content-type'), /text\/html/);
-        assert.equal(await response.text(), source);
+        assert.equal(await response.text(), googleHead(source, `/${page}/`));
       }
       assert.match(source, /<title>[^<]+ — Sentrapedia<\/title>/);
       assert.match(source, /<h1 id="legal-title" tabindex="-1">/);
-      assert.match(source, /Versi 1\.0 · Berlaku 16 Oktober 2026/);
+      assert.match(source, page === 'privasi' ? /Versi 1\.1 · Berlaku 21 November 2026/ : /Versi 1\.0 · Berlaku 16 Oktober 2026/);
       assert.match(source, /kewenangan dokter yang menangani|Kebijakan Privasi/);
       const ids = new Set([...source.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
       assert.equal(ids.size, [...source.matchAll(/\bid="/g)].length, `${page}: duplicate ids`);
@@ -41,6 +42,7 @@ test('legal pages serve their source, cross-link each other and stay local', asy
         ...[...css.matchAll(/url\('([^']+)'\)/g)].map(match => match[1]),
       ]);
       for (const target of targets) {
+        if (target === 'https://policies.google.com/privacy') continue; // Informational link; never an embedded asset.
         const url = new URL(target, `${base}/${page}/`);
         assert.equal(url.origin, base, `${page} must not require external assets: ${target}`);
         const response = await fetch(url);
