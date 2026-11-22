@@ -114,3 +114,42 @@ test('contact accepts the explicitly configured HTTPS origin only', async () => 
   });
   assert.equal(sends, 1);
 });
+
+test('contact derives an HTTPS origin from the proxy scheme when no origin is configured', async () => {
+  let sends = 0;
+  await withHandler({
+    apiKey: 'test-key',
+    from: 'verified@example.test',
+    publicOrigin: '',
+    fetchEmail: async () => {
+      sends++;
+      return new Response(JSON.stringify({ id: 'mock-id' }));
+    }
+  }, async base => {
+    const httpsOrigin = base.replace('http://', 'https://');
+    const accepted = await post(base, valid, { Origin: httpsOrigin, 'X-Forwarded-Proto': 'https' });
+    assert.equal(accepted.status, 202);
+    await accepted.arrayBuffer();
+    const downgraded = await post(base, valid, { Origin: base, 'X-Forwarded-Proto': 'https' });
+    assert.equal(downgraded.status, 403);
+    await downgraded.arrayBuffer();
+    const otherHost = await post(base, valid, { Origin: 'https://example.invalid', 'X-Forwarded-Proto': 'https' });
+    assert.equal(otherHost.status, 403);
+    await otherHost.arrayBuffer();
+  });
+  assert.equal(sends, 1);
+});
+
+test('contact normalises the configured origin and fails closed when it is malformed', async () => {
+  const fetchEmail = async () => new Response(JSON.stringify({ id: 'mock-id' }));
+  await withHandler({ apiKey: 'test-key', from: 'verified@example.test', publicOrigin: 'https://sentrapedia.example/', fetchEmail }, async base => {
+    const accepted = await post(base, valid, { Origin: 'https://sentrapedia.example' });
+    assert.equal(accepted.status, 202);
+    await accepted.arrayBuffer();
+  });
+  await withHandler({ apiKey: 'test-key', from: 'verified@example.test', publicOrigin: 'not a url', fetchEmail }, async base => {
+    const rejected = await post(base, valid, { Origin: base });
+    assert.equal(rejected.status, 403);
+    await rejected.arrayBuffer();
+  });
+});
