@@ -1,0 +1,79 @@
+# Launch-day uptime probe (risk register: "Production outage or relay failure").
+# Every 15 minutes it checks the public site, that the contact function answers, and the beta sign-up page that
+# holds the waitlist. A failure opens one issue labelled `outage` (GitHub emails the repository's watchers);
+# recovery closes it with a comment. No secret is used and no form is submitted, so no email is ever sent.
+# GitHub may delay scheduled runs by several minutes, and disables schedules after 60 days without repository activity.
+name: Uptime
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe public endpoints
+        id: probe
+        shell: bash
+        run: |
+          # url|expected status. GET on the contact function returns 405 by design, which proves the function runs.
+          checks=(
+            "https://sentrapedia.com/|200"
+            "https://sentrapedia.com/api/contact|405"
+            "https://beta.sentrapedia.com/sign-up|200"
+          )
+          failed=()
+          for check in "${checks[@]}"; do
+            url="${check%|*}"; expected="${check#*|}"; status=000
+            # Two attempts 20 s apart, so one dropped packet does not page anyone.
+            for attempt in 1 2; do
+              status=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 -A 'sentrapedia-uptime/1' "$url" || true)
+              if [ "$status" = "$expected" ]; then break; fi
+              if [ "$attempt" = 1 ]; then sleep 20; fi
+            done
+            echo "$url -> $status (expected $expected)"
+            if [ "$status" != "$expected" ]; then failed+=("- \`$url\` answered **$status**, expected $expected"); fi
+          done
+          {
+            echo 'report<<EOF'
+            printf '%s\n' "${failed[@]}"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+          if [ "${#failed[@]}" -eq 0 ]; then echo "down=false" >> "$GITHUB_OUTPUT"; else echo "down=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Open or update the outage issue
+        if: steps.probe.outputs.down == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REPORT: ${{ steps.probe.outputs.report }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create outage --color B60205 --description "Opened by the uptime probe" 2>/dev/null || true
+          body=$(printf 'Uptime probe failed at %s UTC.\n\n%s\n\nRun: %s\n\nFollow `apps/site/docs/spds/incident_runbook.md`.' \
+            "$(date -u '+%Y-%m-%d %H:%M')" "$REPORT" "$RUN_URL")
+          open=$(gh issue list --label outage --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then gh issue comment "$open" --body "$body"
+          else gh issue create --title "Outage: site check failed" --label outage --body "$body"; fi
+          exit 1
+
+      - name: Close the outage issue on recovery
+        if: steps.probe.outputs.down == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for n in $(gh issue list --label outage --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Recovered: all checks passed at $(date -u '+%Y-%m-%d %H:%M') UTC."
+          done
