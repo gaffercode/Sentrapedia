@@ -69,6 +69,20 @@ function logDeliveryFailure(log, reason) {
   log(JSON.stringify({ event: 'contact_delivery_failed', reason }));
 }
 
+// The browser's Origin must match the site's own origin. CONTACT_PUBLIC_ORIGIN pins it (normalised, so a trailing slash
+// or path is harmless); otherwise it is derived from the request. Vercel terminates TLS and sets x-forwarded-proto to
+// the visitor's scheme (vercel.com/docs/headers/request-headers), so an HTTPS page posts with an https:// Origin; the
+// local server has no proxy and stays on http.
+export function expectedOrigin(req, publicOrigin) {
+  if (publicOrigin) {
+    try { return new URL(publicOrigin.trim()).origin; }
+    catch { return null; }
+  }
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const scheme = proto === 'https' ? 'https' : 'http';
+  return req.headers.host ? `${scheme}://${req.headers.host}` : null;
+}
+
 export function createContactHandler({
   apiKey = process.env.RESEND_API_KEY,
   from = process.env.RESEND_FROM_EMAIL,
@@ -81,7 +95,7 @@ export function createContactHandler({
   const attempts = new Map();
   return async (req, res) => {
     const origin = req.headers.origin;
-    if (origin && origin !== (publicOrigin || `http://${req.headers.host}`)) {
+    if (origin && origin !== expectedOrigin(req, publicOrigin)) {
       json(res, 403, { status: 'rejected', message: 'Origin tidak diizinkan.' });
       return;
     }
@@ -89,6 +103,8 @@ export function createContactHandler({
       json(res, 415, { status: 'invalid', message: 'Format formulir tidak didukung.' });
       return;
     }
+    // Best-effort burst guard only: the map lives in one function instance, so on Vercel each cold or parallel instance
+    // has its own count. The real per-IP limit belongs in a Vercel Firewall rate-limit rule (docs/data.md).
     // Behind a proxy (Vercel) the socket is the proxy; the first forwarded address is the visitor. Vercel overwrites
     // x-forwarded-for, so a visitor cannot set it (vercel.com/docs/headers/request-headers, checked 2026-10-19); the
     // local server listens on loopback only and takes the header as sent.

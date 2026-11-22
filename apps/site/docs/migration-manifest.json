@@ -240,11 +240,11 @@
     },
     {
       "path": "scripts/contact.mjs",
-      "sha256": "2352648f961ac2c305a75f29a3362506b63b7ecd477c26a1d7ee3ef308154133"
+      "sha256": "0de56cea8ecb729eb9b4c593817ed7e6881ffc91ad1f259e9cfb42a8a186d2f4"
     },
     {
       "path": "scripts/contact.test.mjs",
-      "sha256": "fdef2ddd9555953e26c724ed377950e7167ea0dea85356ca29bbec1ceb066f5f"
+      "sha256": "4295e3b59c53ad03c99b9590f0e3f77943d9c2e259596a5080a91f22e079a395"
     },
     {
       "path": "scripts/faq.test.mjs",
