@@ -84,3 +84,12 @@ The reviewed foundation from `c773e692` is preserved. Desktop/mobile navigation 
 - **Not verified:** the live site (nothing is deployed), a real phone, Safari and Firefox, a screen reader. The PageSpeed score itself will differ from the local one; rerun PageSpeed after deployment.
 - **Open from the review, not changed:** while a choice is pending the panel's link and two buttons come before the skip link in Tab order on the six inner pages; the declared subset range names about 40 code points Inter lacks (a soft hyphen in future copy would fetch the full font and the copy test would not notice); several tests match the controllers' text and not their behaviour; the product film's early observer gains only the scroll distance between its first pixel and 30% in view.
 - **Left as found:** the five workflow posters (410 KiB) and the 943x735 mark used at 120 px (72 KiB) still load with the page; 664 KB of homepage HTML is mostly four inline SVG illustrations; Bootstrap's CSS is almost entirely unused; `Cache-Control` is `max-age=0` for every file (a Vercel setting); twelve `.clinical-note-ink` spans carry `aria-label`; `label-content-name-mismatch` is reported for the language link and the five workflow card controls.
+
+## Theme script removal - 2026-11-22
+
+- **Asked:** Gaffer asked to close the launch-readiness gaps on third-party weight and licensing.
+- **Changed:** the homepage no longer loads `jquery.min.js`, `jquery-migrate.min.js`, `bootstrap.bundle.min.js`, `slick.min.js`, `slick.min.css` or `custom55e2.js`, nor the inline `ajaxurl` script only that theme script read. No page markup used Slick, Bootstrap's JavaScript components (no `data-bs-*`), the WordPress post or project loaders, or the sub-menu toggle. The theme script's two live behaviours (mobile menu toggle, `#header.scrolled` past 50 px) are in `scripts/browser/menu.js`, bundled into `media/design-audit.js`. The files stay at their paths; `tests/output-parity.test.mjs` re-inserts the exact removed markup before comparing with the baseline. `assets/theme/fonts/Inter-OFL.txt` is the one added path.
+- **Effect:** about 225 KB of deferred JavaScript and one stylesheet request fewer on the homepage.
+- **Checked:** site tests 77/77, lint, verify and docs verify with no errors; in headless Chromium at 390 px the menu button opens and closes the menu and updates `aria-expanded`, at 1280 px the header gains and loses `scrolled`, no console errors and no request to the removed files.
+- **Not verified:** a new PageSpeed run, a real phone, Safari and Firefox.
+

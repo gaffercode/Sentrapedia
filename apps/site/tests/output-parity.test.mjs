@@ -41,6 +41,20 @@ const reversals20261121 = {
   'media/product-film.js': script => script.replace(filmWarmUp, ''),
 };
 
+// Theme script removal, 2026-11-22: jQuery, jQuery Migrate, the Bootstrap bundle, Slick and the WordPress theme script
+// are no longer loaded (their two live behaviours moved to scripts/browser/menu.js); their files stay at their paths.
+const themeScripts = ['<script id="jquery-core-js" src="assets/vendor/jquery.min.js?ver=3.7.1" defer></script>',
+  '<script id="jquery-migrate-js" src="assets/vendor/jquery-migrate.min.js?ver=3.4.1" defer></script>',
+  '<script id="bootstrap-js" src="/vendor/cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>',
+  '<script id="slick-js" src="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js" defer></script>',
+  '<script id="custom-js" src="assets/theme/js/custom55e2.js?ver=7.1.3" defer></script>'].join('\n');
+const restoreThemeScripts = html => html
+  .replace('crossorigin="anonymous">\n\n\n\n    <link rel="stylesheet" href="assets/theme/css/main1509.css',
+    'crossorigin="anonymous">\n\n    <link rel="stylesheet" href="/vendor/cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css">\n\n\n    <link rel="stylesheet" href="assets/theme/css/main1509.css')
+  .replace('</style>\n\n\n\n\n<link rel="canonical"', `</style>\n\n\n${themeScripts}\n\n\n<link rel="canonical"`)
+  .replace('" />\n\n\n\n\n\n\n\n<link rel="icon"',
+    `" />\n\n\n    <script type="text/javascript">\n\n        var ajaxurl = '/api/unavailable';\n    </script>\n\n\n\n\n\n<link rel="icon"`);
+
 test('every public path is preserved and only reviewed runtime bundles change bytes', async () => {
   const expected = JSON.parse(await readFile(new URL('refactor-evidence/baseline-output.json', root), 'utf8'));
   const actual = await inventory(new URL('site/', root));
@@ -49,7 +63,9 @@ test('every public path is preserved and only reviewed runtime bundles change by
     'assets/theme/fonts/Inter_28pt-Regular.woff2', 'assets/theme/fonts/Inter_28pt-SemiBold.woff2', 'assets/theme/fonts/Inter_28pt-Bold.woff2',
     'assets/theme/fonts/bootstrap-icons-subset.woff2', 'media/fonts/Caveat-Variable.woff2',
     // PageSpeed plan 2026-11-21: frame 0 of each film, shown until the film itself is fetched.
-    'media/promo-vid-poster.webp', 'media/sentrapedia-solusi-poster.webp']);
+    'media/promo-vid-poster.webp', 'media/sentrapedia-solusi-poster.webp',
+    // License evidence 2026-11-22: the Inter font's OFL text, served beside the Inter files it covers.
+    'assets/theme/fonts/Inter-OFL.txt']);
   for (let i = actual.length - 1; i >= 0; i--) if (additions.has(actual[i].path)) actual.splice(i, 1);
   // Strip only the reviewed shared metadata; preserve byte comparisons for the remaining HTML.
   for (const entry of actual.filter(entry => entry.path.endsWith('.html') && entry.path !== 'index.html' && entry.path !== 'privasi/index.html')) {
@@ -66,7 +82,9 @@ test('every public path is preserved and only reviewed runtime bundles change by
   // Reinsert only the audited unused WordPress emoji rule to prove the rest of the homepage is byte-identical.
   const html = await readFile(new URL('site/index.html', root), 'utf8');
   const removed = await readFile(new URL('refactor-evidence/removed-emoji-style.txt', root), 'utf8');
-  const restored = html.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '').replace(/\n<!-- analytics-choice:start -->[\s\S]*?<!-- analytics-choice:end -->/, '').replace('https://sentrapedia.com/\" />', 'index.html\" />').replace('<style id="wp-block-library-inline-css">', removed + '<style id="wp-block-library-inline-css">')
+  const themeRestored = restoreThemeScripts(html);
+  assert.notEqual(themeRestored, html, 'index.html: the theme script removal is no longer there to reverse');
+  const restored = themeRestored.replace(/<!-- google-site:start -->[\s\S]*?<!-- google-site:end -->\n/, '').replace(/\n<!-- analytics-choice:start -->[\s\S]*?<!-- analytics-choice:end -->/, '').replace('https://sentrapedia.com/\" />', 'index.html\" />').replace('<style id="wp-block-library-inline-css">', removed + '<style id="wp-block-library-inline-css">')
     // Gaffer approved desktop/mobile beta access; remove only the exact added navigation markup for historical comparison.
     .replace('<li class="menu-item" data-login-desktop><a href="https://beta.sentrapedia.com/sign-in">Masuk</a></li>\n', '')
     .replace('<div class="col-md-7 main-menu-div d-none d-md-block">', '<div class="col-md-6 main-menu-div d-none d-md-block">')
