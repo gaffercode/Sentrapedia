@@ -101,3 +101,26 @@ The local workspace runs without any database. The account database matters only
    ```
 
 Never point `OWNER_URL` or the seed at the production database. `tests/local-database.test.ts` keeps this section and the seed in step with the migrations; it reads the files as text and needs no database server. What is not covered here: the app talking to this database end to end, which needs Clerk sign-in.
+
+## When analyses answer "Pencatat batas pemakaian belum tersedia"
+
+In Clerk mode every analysis first counts against the daily quota and the shared budget in the account database (`src/lib/aadi/limits.ts`). When that count cannot be made, the analysis is refused with 503 `LIMITS_UNAVAILABLE` and nothing runs. The readiness probe (`GET /api/aadi`) only checks that `SENTRAPEDIA_DATABASE_URL` and `SENTRAPEDIA_USER_DAILY_ANALYSES` are set, not that the database answers, so it can report `ready: true` while every analysis is refused.
+
+Each refusal writes one log line `{"event":"aadi.limits","level":"error","stage":"admit","code":"…"}` with no case text. The code says what to fix:
+
+| `code` | Meaning | Fix |
+| --- | --- | --- |
+| `NO_STORE` | `SENTRAPEDIA_DATABASE_URL` is not set in the running container. | Set it to the pooled URL of the `sentrapedia_runtime` role and restart. |
+| `NO_PRINCIPAL` | The signed-in session has no usable account id. | Check the Clerk instance and keys; this should not happen with Clerk's own ids. |
+| `42P01` | A table is missing: a migration was not applied to this database. | Apply the missing files of `db/migrations/` in name order as the owner role, never as the runtime role. |
+| `42501` | The runtime role lacks a grant on a table. | Re-apply the migration that creates the table; its `grant` gives the role access. |
+| `28P01`, `28000` | The runtime role's password or name is wrong. | Correct the URL, or reset the password as the owner. |
+| `ENOTFOUND`, `ECONNREFUSED`, `ETIMEDOUT` | The container cannot reach the database host. | Check the host in the URL and the server's outbound network. |
+| `UNKNOWN` | Any other failure. | Read the database's own logs for the same minute. |
+
+To check which tables exist, run this in the database's SQL editor. Every row should say `true`:
+
+```sql
+select t, to_regclass('public.' || t) is not null as present
+from unnest(array['profile', 'personal_template', 'workspace_sync', 'analysis_usage', 'analysis_budget_day', 'output_report', 'workspace_feedback']) as t;
+```
