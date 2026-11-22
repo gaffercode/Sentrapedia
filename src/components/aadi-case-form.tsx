@@ -21,6 +21,8 @@ export function AadiCaseForm({ onSave }: { onSave: (analysis: AadiAnalysis) => v
   const [connection, setConnection] = useState<{ reachable: boolean; configured: boolean; modelReady: boolean; groundingReady: boolean } | null>(null);
   const [connectionError, setConnectionError] = useState("");
   const [analysis, setAnalysis] = useState<AadiAnalysis | null>(null);
+  // A change to the case after an analysis keeps the result (it was paid for) and marks it as no longer matching the form.
+  const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
@@ -28,11 +30,11 @@ export function AadiCaseForm({ onSave }: { onSave: (analysis: AadiAnalysis) => v
   const controller = useRef<AbortController | null>(null);
   useEffect(() => { const healthController = new AbortController(); fetch("/api/aadi", { cache: "no-store", signal: healthController.signal }).then(async response => { const data: unknown = await response.json(); if (!response.ok || !data || typeof data !== "object" || !("reachable" in data) || !("configured" in data) || typeof data.reachable !== "boolean" || typeof data.configured !== "boolean" || !("modelReady" in data) || typeof data.modelReady !== "boolean") throw new Error("health"); setConnection({ reachable: data.reachable, configured: data.configured, modelReady: data.modelReady, groundingReady: "groundingReady" in data && data.groundingReady === true }); setConnectionError(""); }).catch(() => { if (!healthController.signal.aborted) { setConnection(null); setConnectionError("Status koneksi belum dapat diperiksa."); } }); return () => healthController.abort(); }, [refresh]);
   useEffect(() => () => controller.current?.abort(), []);
-  function update(next: CaseState) { setCase(next); setAnalysis(null); setError(""); }
+  function update(next: CaseState) { setCase(next); setStale(true); setError(""); }
   async function analyze() {
     if (busy || !validCase(caseData) || !connection?.configured || !connection.modelReady || !connection.groundingReady) return;
     const snapshot = structuredClone(caseData);
-    const abort = new AbortController(); controller.current = abort; setBusy(true); setError(""); setAnalysis(null);
+    const abort = new AbortController(); controller.current = abort; setBusy(true); setError(""); setAnalysis(null); setStale(false);
     try {
       const next = await requestAadiAnalysis(snapshot, { signal: abort.signal, onQueuePosition: place => { if (!abort.signal.aborted) setQueuePosition(place); } });
       if (abort.signal.aborted) return;
@@ -57,6 +59,6 @@ export function AadiCaseForm({ onSave }: { onSave: (analysis: AadiAnalysis) => v
       <div className="workflow-actions"><button className="button primary" disabled={busy || !validCase(caseData) || !connection?.configured || !connection.reachable || !connection.modelReady || !connection.groundingReady}>Analisis kasus</button>{busy && <><PixelLoader label="Sedang menganalisis kasus…"/><QueueNotice position={queuePosition}/><button type="button" className="button" onClick={() => { controller.current?.abort(); setBusy(false); setError("Analisis dibatalkan. Tidak ada hasil disimpan."); }}>Batalkan analisis</button></>}</div>
     </form>
     {error && <p className="form-warning" role="alert">{error}</p>}
-    {analysis && <section className="aadi-result"><h3>Hasil analisis · belum ditinjau</h3><p className="panel-caption">Tingkat keyakinan berasal dari model. Referensi Oracle yang dipilih tersedia di bawah hasil. Pertimbangan rujukan perlu dinilai klinisi.</p><pre>{aadiDraft(analysis.result, analysis.traceId, analysis.createdAt, analysis.case, undefined, analysis.evidenceGate) + theOracleCitations(analysis.grounding, analysis.therapyGrounding, analysis.evidenceGate)}</pre><button className="button primary" onClick={() => onSave(analysis)}>Simpan sebagai draf untuk ditinjau</button><ReportOutput key={analysis.traceId} traceId={analysis.traceId}/></section>}
+    {analysis && <section className="aadi-result"><h3>Hasil analisis · {stale ? "kedaluwarsa" : "belum ditinjau"}</h3>{stale && <p className="form-warning">Kedaluwarsa: data kasus diubah setelah analisis ini. Hasil di bawah tetap untuk data kasus saat dianalisis, dan itu yang tersimpan sebagai draf. Jalankan analisis lagi untuk data terbaru.</p>}<p className="panel-caption">Tingkat keyakinan berasal dari model. Referensi Oracle yang dipilih tersedia di bawah hasil. Pertimbangan rujukan perlu dinilai klinisi.</p><pre>{aadiDraft(analysis.result, analysis.traceId, analysis.createdAt, analysis.case, undefined, analysis.evidenceGate) + theOracleCitations(analysis.grounding, analysis.therapyGrounding, analysis.evidenceGate)}</pre><button className="button primary" onClick={() => onSave(analysis)}>Simpan sebagai draf untuk ditinjau</button><ReportOutput key={analysis.traceId} traceId={analysis.traceId}/></section>}
   </div>;
 }

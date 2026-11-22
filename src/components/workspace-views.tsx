@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ChevronDown, Command, FileText, Maximize2, Menu, Minimize2, Sparkles } from "lucide-react";
+import { ArrowDownToLine, ChevronDown, Command, FileText, Maximize2, Menu, Minimize2 } from "lucide-react";
 import { useEffect, useRef, type ComponentProps } from "react";
 import type { Encounter, WorkspaceAction } from "../lib/workspace";
 import { Composer } from "./composer";
@@ -10,7 +10,7 @@ import { WorkspaceGreeting } from "./workspace-greeting";
 
 type ComposerProps = ComponentProps<typeof Composer>;
 
-export function WorkspaceHeader({ hasMessages, name, patientName, encounterTitle, focusMode, documentCount, paneOpen, onPane, onExpand, onEncounter, onCommands, onFocus, onExport, onUpgrade }: { hasMessages: boolean; name: string; patientName?: string; encounterTitle?: string; focusMode: boolean; documentCount: number; paneOpen: boolean; onPane: () => void; onExpand: () => void; onEncounter: () => void; onCommands: () => void; onFocus: () => void; onExport: () => void; onUpgrade: () => void }) {
+export function WorkspaceHeader({ hasMessages, name, patientName, encounterTitle, focusMode, documentCount, paneOpen, onPane, onExpand, onEncounter, onCommands, onFocus, onExport }: { hasMessages: boolean; name: string; patientName?: string; encounterTitle?: string; focusMode: boolean; documentCount: number; paneOpen: boolean; onPane: () => void; onExpand: () => void; onEncounter: () => void; onCommands: () => void; onFocus: () => void; onExport: () => void }) {
   return <header className="canvas-header">
     <div className="header-left">
       <button className="icon-button expand-sidebar" aria-label="Buka navigasi" onClick={onExpand}><Menu size={19}/></button>
@@ -21,7 +21,6 @@ export function WorkspaceHeader({ hasMessages, name, patientName, encounterTitle
       <button className="icon-button" aria-label={focusMode ? "Keluar Focus Mode" : "Aktifkan Focus Mode"} aria-pressed={focusMode} title="Focus Mode" onClick={onFocus}>{focusMode ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}</button>
       {hasMessages && documentCount > 0 && <button className="icon-button document-count" aria-label={`Dokumen encounter, ${documentCount} dokumen`} title="Dokumen encounter" aria-pressed={paneOpen} onClick={onPane}><FileText size={16}/><span>{documentCount}</span></button>}
       {hasMessages && <button className="button export-encounter" onClick={onExport}><ArrowDownToLine size={14}/> Ekspor</button>}
-      <button className="upgrade-button" onClick={onUpgrade}><Sparkles size={15} fill="currentColor"/>Berlangganan</button>
     </div>
   </header>;
 }

@@ -68,3 +68,12 @@ oracle-ii/
 
 # Local archive of untracked leftovers (Gaffer, 2026-11-18)
 .archieved/
+
+# Type audit working papers (pass 1 audit, pass 2 report)
+docs/TYPE-AUDIT.md
+docs/TYPE-REPORT.md
+
+# Function audit working papers (pass 1 map, pass 2 audit, pass 3 report)
+docs/FUNCTION-MAP.md
+docs/FUNCTION-AUDIT.md
+docs/FUNCTION-REPORT.md

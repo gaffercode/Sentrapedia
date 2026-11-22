@@ -8,11 +8,11 @@ const store = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../src/lib/sync/store", () => store);
-vi.mock("../src/lib/auth/server", () => ({ getBetaAccess: () => ({ resolve: async () => ({ status: "allowed", userId: "local-development" }) }) }));
+vi.mock("../src/lib/auth/server", () => ({ getAuthConfig: () => ({ mode: "local" }), getBetaAccess: () => ({ resolve: async () => ({ status: "allowed", userId: "local-development" }) }) }));
 
 import { GET, POST } from "../src/app/api/sync/route";
 
-const push = () => POST(new Request("http://localhost/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ encounters: [], templates: [] }) }));
+const push = (origin = "http://localhost") => POST(new Request("http://localhost/api/sync", { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify({ encounters: [], templates: [] }) }));
 
 beforeEach(() => { vi.stubEnv("SENTRAPEDIA_DATABASE_URL", "postgres://unused"); vi.stubEnv("SENTRAPEDIA_SYNC_MODE", ""); });
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
@@ -31,6 +31,13 @@ describe("/api/sync failures", () => {
     const text = await response.text();
     expect(JSON.parse(text).error.code).toBe("SYNC_FAILED");
     expect(text).not.toContain("private database detail");
+  });
+  // The same origin check as /api/feedback and /api/aadi/report: a page on another site cannot write to the account.
+  it("refuses a push from another origin before reading it", async () => {
+    const response = await push("https://evil.example");
+    expect(response.status).toBe(403);
+    expect((await response.json()).error.code).toBe("ORIGIN");
+    expect(store.pushEncounters).not.toHaveBeenCalled();
   });
   it("answers SYNC_FAILED when a pull fails", async () => {
     store.pullTemplates.mockRejectedValueOnce(new Error("boom"));

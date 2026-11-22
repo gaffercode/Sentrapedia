@@ -56,13 +56,33 @@ describe("sidebar account row", () => {
     render(sidebar({ state: { ...initialWorkspace, settings: { ...initialWorkspace.settings, name: "dr. Rani Putri" } } }));
     const trigger = screen.getByRole("button", { name: /dr\. Rani Putri/ });
     expect(trigger.querySelector(".avatar")?.textContent).toBe("DR");
+    expect(trigger.querySelector(".avatar img")).toBeNull();
+  });
+  it("shows the Sentraverse mark as the avatar until a display name is set", () => {
+    render(sidebar({ state: { ...initialWorkspace, settings: { ...initialWorkspace.settings, name: "" } } }));
+    const avatar = screen.getByRole("button", { name: /Sentrapedia/ }).querySelector(".avatar");
+    expect(avatar?.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(avatar?.textContent).toBe("");
   });
   it("closes the phone sidebar before opening the chosen dialog", () => {
     const calls: string[] = [];
     render(sidebar({ mobile: true, onToggle: () => calls.push("toggle"), onDialog: (name) => calls.push(`dialog:${name}`) }));
     fireEvent.click(screen.getByRole("button", { name: /Sentrapedia/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Referensi" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Pustaka Klinis" }));
     expect(calls).toEqual(["toggle", "dialog:knowledge"]);
+  });
+  it("closes the phone sidebar before opening a dialog from the nav, as the account menu does", () => {
+    const calls: string[] = [];
+    render(sidebar({ mobile: true, onToggle: () => calls.push("toggle"), onDialog: (name) => calls.push(`dialog:${name}`) }));
+    fireEvent.click(screen.getByRole("button", { name: "Buat Pasien" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cari/ }));
+    expect(calls).toEqual(["toggle", "dialog:patient", "toggle", "dialog:search"]);
+  });
+  it("never opens a closed phone drawer when a dialog opens", () => {
+    const calls: string[] = [];
+    render(sidebar({ mobile: true, open: false, onToggle: () => calls.push("toggle"), onDialog: (name) => calls.push(`dialog:${name}`) }));
+    fireEvent.click(screen.getByRole("button", { name: "Buat Pasien", hidden: true }));
+    expect(calls).toEqual(["dialog:patient"]);
   });
 });
 
@@ -71,7 +91,7 @@ describe("account menu", () => {
     const onOpen = vi.fn(), onSignOut = vi.fn();
     render(<AccountMenu name="dr. Rani" plan="Lite" onOpen={onOpen} onSignOut={onSignOut}/>);
     fireEvent.click(screen.getByRole("button", { name: /dr\. Rani/ }));
-    expect(screen.getAllByRole("menuitem").map(i => i.textContent)).toEqual(["Pengaturan Agent", "Antrean kerja", "Referensi", "Tentang workspace", "Keluar"]);
+    expect(screen.getAllByRole("menuitem").map(i => i.textContent)).toEqual(["Pengaturan Agent", "Antrean kerja", "Pustaka Klinis", "Data workspace", "Keluar"]);
     expect(screen.getByRole("menuitem", { name: "Pengaturan Agent" }).getAttribute("href")).toBe("/agent");
     fireEvent.click(screen.getByRole("menuitem", { name: "Antrean kerja" }));
     expect(onOpen).toHaveBeenCalledWith("queue");

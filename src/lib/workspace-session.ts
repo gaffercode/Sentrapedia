@@ -12,7 +12,7 @@ export function shortcutFor(event: Pick<KeyboardEvent, "key" | "ctrlKey" | "meta
   if (blocked || !(event.metaKey || event.ctrlKey)) return null;
   if (event.key.toLowerCase() === "j") return "commands";
   if (event.key === "/") return "search";
-  if (event.key === "k") return "new";
+  if (event.key.toLowerCase() === "k") return "new";
   return null;
 }
 

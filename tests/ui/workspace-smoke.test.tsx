@@ -379,6 +379,8 @@ describe("workspace UI smoke tests", () => {
     expect(screen.getByRole("group", { name: "Mode" })).toBeDefined();
     expect(screen.queryByRole("group", { name: "Tujuan kerja" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Tentang workspace ini" })).toBeNull();
+    // Gaffer, 2026-11-22: no subscription is offered until a payment flow exists.
+    expect(screen.queryByRole("button", { name: "Berlangganan" })).toBeNull();
   });
 
   it("counts a visit per tab session and rotates the headline on the next one", async () => {
