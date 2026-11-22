@@ -55,7 +55,7 @@ Three more things hang off the side:
 
 All **Read**.
 
-- **Pages** (`src/app/`): `/` (the workspace), `/agent`, `/onboarding` (consent), `/apply` (redirects to sign-up), `/sign-in`, `/sign-up`, `/account`.
+- **Pages** (`src/app/`): `/` (the workspace), `/agent`, `/onboarding` (consent), `/apply` (the beta waitlist, Clerk `<Waitlist/>`), `/sign-in`, `/sign-up`, `/account`.
 - **API routes**:
   - `GET /api/aadi`: health probe, no sign-in needed. It also starts loading TheOracle in the background.
   - `POST /api/aadi`: run an analysis. This is the heart of the product.

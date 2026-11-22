@@ -4,7 +4,8 @@ import Link from "next/link";
 import logomark from "../../assets/sentraverse-mark.png";
 import { CabinetFigure } from "./cabinet/figure";
 
-const site = "https://sentrapedia.vercel.app/";
+// The marketing website, where the brand link and "Kembali ke website" lead and where /apply returns a doctor after joining.
+export const site = "https://sentrapedia.vercel.app/";
 
 /** Where the doctor signs in. One column, one card, nothing between them and the form. */
 export function AuthFrame({ title, alternative, children }: {
