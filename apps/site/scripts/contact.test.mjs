@@ -115,6 +115,42 @@ test('contact accepts the explicitly configured HTTPS origin only', async () => 
   assert.equal(sends, 1);
 });
 
+test('contact logs a delivery failure reason without any visitor data', async () => {
+  const cases = [
+    [{ apiKey: '', from: '' }, 503, 'not-configured'],
+    [{ fetchEmail: async () => new Response('{"message":"invalid key"}', { status: 401 }) }, 502, 'resend-http-401'],
+    [{ fetchEmail: async () => new Response('{}', { status: 200 }) }, 502, 'resend-no-id'],
+    [{ fetchEmail: async () => { throw new TypeError('fetch failed'); } }, 502, 'TypeError']
+  ];
+  for (const [options, status, reason] of cases) {
+    const lines = [];
+    await withHandler({ apiKey: 'test-key', from: 'verified@example.test', log: line => lines.push(line), ...options }, async base => {
+      const response = await post(base, valid);
+      assert.equal(response.status, status);
+      await response.arrayBuffer();
+    });
+    assert.deepEqual(lines.map(line => JSON.parse(line)), [{ event: 'contact_delivery_failed', reason }]);
+    for (const value of [valid.name, valid.email, valid.message, '127.0.0.1', 'invalid key']) {
+      assert.ok(!lines.join('').includes(value), `log must not contain ${value}`);
+    }
+  }
+});
+
+test('contact logs nothing when delivery is accepted', async () => {
+  const lines = [];
+  await withHandler({
+    apiKey: 'test-key',
+    from: 'verified@example.test',
+    log: line => lines.push(line),
+    fetchEmail: async () => new Response(JSON.stringify({ id: 'mock-id' }), { status: 200 })
+  }, async base => {
+    const response = await post(base, valid);
+    assert.equal(response.status, 202);
+    await response.arrayBuffer();
+  });
+  assert.deepEqual(lines, []);
+});
+
 test('contact derives an HTTPS origin from the proxy scheme when no origin is configured', async () => {
   let sends = 0;
   await withHandler({
