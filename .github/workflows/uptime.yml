@@ -38,7 +38,11 @@ jobs:
             url="${check%|*}"; expected="${check#*|}"; status=000
             # Two attempts 20 s apart, so one dropped packet does not page anyone.
             for attempt in 1 2; do
-              status=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 20 -A 'sentrapedia-uptime/1' "$url" || true)
+              result=$(curl -s -o /dev/null -w '%{http_code} %{url_effective}' -L --max-time 20 -A 'sentrapedia-uptime/1' "$url" || true)
+              status="${result%% *}"; final="${result#* }"
+              # A redirect to another host (for example an access-gate login page) is not the page itself.
+              host="${url#https://}"; host="${host%%/*}"
+              if [ "$status" = "$expected" ] && [[ "$final" != https://"$host"/* ]]; then status="$status via ${final%%\?*}"; fi
               if [ "$status" = "$expected" ]; then break; fi
               if [ "$attempt" = 1 ]; then sleep 20; fi
             done
