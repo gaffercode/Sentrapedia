@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import Home from "../src/app/page";
 import Onboarding from "../src/app/onboarding/page";
+import Apply from "../src/app/apply/page";
 import type { AccessResult } from "../src/lib/auth/policy";
 
 const state = vi.hoisted(() => ({ access: { status: "signed-out" } as AccessResult, asked: [] as unknown[] }));
@@ -62,5 +63,13 @@ describe("onboarding server page", () => {
     expect(renderToStaticMarkup(await Onboarding())).toContain("Akses belum diizinkan");
     state.access = { status: "unavailable" };
     expect(renderToStaticMarkup(await Onboarding())).toContain("Layanan akses belum tersedia");
+  });
+});
+
+describe("waitlist page", () => {
+  it("shows the recoverable unavailable state without Clerk configured, never the waitlist form", () => {
+    const html = renderToStaticMarkup(Apply());
+    expect(html).toContain("Layanan akses belum tersedia");
+    expect(html).not.toContain("Gabung waitlist beta");
   });
 });

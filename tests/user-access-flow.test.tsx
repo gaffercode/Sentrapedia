@@ -10,7 +10,7 @@ import Onboarding from "../src/app/onboarding/page";
 vi.mock("../src/lib/auth/server", () => ({ getAuthConfig: () => ({ mode: "clerk" }), getBetaAccess: () => ({ resolve: async () => ({ status: "allowed", userId: "user_new" }) }) }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("@clerk/nextjs", () => ({
-  Waitlist: () => <div data-waitlist/>,
+  Waitlist: (props: Record<string, string>) => <div data-waitlist={props.signInUrl} data-after={props.afterJoinWaitlistUrl}/>,
   SignUp: (props: Record<string, string>) => <div data-sign-up={props.path} data-destination={props.forceRedirectUrl}/>,
   SignIn: (props: Record<string, string>) => <div data-sign-in={props.path} data-register={props.signUpUrl}/>,
 }));
@@ -51,8 +51,16 @@ describe("self-service user access", () => {
     expect(html).toContain('data-register="/sign-up"');
     expect(html).not.toContain("sudah diundang");
   });
-  it("keeps old apply and onboarding links usable without another admission step", async () => {
-    await expect(async () => Apply()).rejects.toThrow("redirect:/sign-up");
+  // Clerk's Waitlist mode sends an uninvited /sign-up to waitlistUrl (/apply), so /apply must render, not redirect back.
+  it("renders the branded waitlist on /apply instead of redirecting to /sign-up", () => {
+    const html = renderToStaticMarkup(Apply());
+    expect(html).toContain("Gabung waitlist beta");
+    expect(html).toContain('data-waitlist="/sign-in"');
+    expect(html).toContain('data-after="https://sentrapedia.vercel.app/"');
+    expect(html).toContain('href="/sign-in"');
+    expect(html).not.toContain("/sign-up");
+  });
+  it("keeps the onboarding link usable without another admission step", async () => {
     await expect(async () => Onboarding()).rejects.toThrow("redirect:/");
   });
 });
