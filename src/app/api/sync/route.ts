@@ -1,4 +1,5 @@
-import { getBetaAccess } from "../../../lib/auth/server";
+import { getAuthConfig, getBetaAccess } from "../../../lib/auth/server";
+import { trustedConsentOrigin } from "../../../lib/auth/config";
 import { accessFailure, errorResponse } from "../../../lib/auth/access";
 import { syncPrincipal } from "../../../lib/sync/principal";
 import { syncConfigured } from "../../../lib/sync/db";
@@ -40,6 +41,9 @@ export async function GET() {
 export async function POST(request: Request) {
   const resolved = await principalOf();
   if (!resolved.ok) return resolved.response;
+  // Same origin check as /api/feedback and /api/aadi/report: a page on another site cannot write to this account.
+  const config = getAuthConfig();
+  if (!trustedConsentOrigin(request, config.mode === "clerk" ? config.publicOrigin : null)) return errorResponse(403, "ORIGIN", "Data sinkronisasi tidak valid. Muat ulang halaman dan coba kembali.");
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return badInput();
   let encounters: Encounter[];
   let templates: PersonalTemplate[];

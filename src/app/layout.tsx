@@ -11,7 +11,8 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 // Inter is the brand face: apps/site sets every page in it, and the official wordmark SVG embeds it at
 // weight 700. The admission pages use it so the doctor crosses from the website without a change of voice.
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Not preloaded: only the admission pages render Inter, and a root-layout preload would send its 48 KB to every workspace route.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", preload: false });
 
 export const metadata: Metadata = { title: "Sentrapedia · Workspace Clinical", description: "Workspace Clinical untuk pertanyaan, catatan, dan langkah perawatan berikutnya. Demonstrasi lokal Sentrapedia." };
 

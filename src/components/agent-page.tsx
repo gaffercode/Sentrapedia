@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useReducer, type ReactNode } from "react";
+import { useReducer, useState, type ReactNode } from "react";
 import { Check, CircleAlert, X } from "lucide-react";
 import { initialWorkspace, workspaceReducer } from "../lib/workspace";
 import { workspaceStorageKeys } from "../lib/workspace-storage";
@@ -20,16 +20,19 @@ function AgentWorkspace({ principalId, theoracle, onSignOut, userButton }: { pri
   const [state, dispatch] = useReducer(workspaceReducer, initialWorkspace);
   const { toast, toastError, notify, dismiss } = useToast();
   const { restoring, storageError, locked, unlock, forget } = useWorkspacePersistence(state, dispatch, notify, workspaceStorageKeys(principalId));
+  // The way back asks first while an edit is unsaved, as the workspace does on the way here.
+  const [unsaved, setUnsaved] = useState(false);
+  const leave = (event: { preventDefault: () => void }) => { if (unsaved && !window.confirm("Perubahan Pengaturan Agent belum disimpan. Tetap kembali ke encounter?")) event.preventDefault(); };
   // The settings live in the same encrypted record: nothing renders or saves until it is unlocked.
   if (!restoring && locked) return <WorkspaceUnlock onUnlock={unlock} onForget={forget}/>;
   return <main className="agent-page">
     <header className="agent-header">
-      <Link className="auth-back" href="/">Kembali ke encounter</Link>
+      <Link className="auth-back" href="/" onClick={leave}>Kembali ke encounter</Link>
       <h1>Pengaturan Agent</h1>
       <div className="agent-header-account">{userButton}{onSignOut && <button type="button" className="button" onClick={onSignOut}>Keluar</button>}</div>
     </header>
     {storageError && <p className="form-warning" role="alert">{storageError}</p>}
-    {restoring ? <p role="status">Memuat pengaturan…</p> : <AgentSettings state={state} dispatch={dispatch} theoracle={theoracle}/>}
+    {restoring ? <p role="status">Memuat pengaturan…</p> : <AgentSettings state={state} dispatch={dispatch} theoracle={theoracle} onUnsaved={setUnsaved}/>}
     {toast && <div className={`toast ${toastError ? "is-error" : ""}`} role={toastError ? "alert" : "status"}>{toastError ? <CircleAlert size={15}/> : <Check size={15}/>}<span>{toast}</span><button aria-label="Tutup notifikasi" onClick={dismiss}><X size={14}/></button></div>}
   </main>;
 }

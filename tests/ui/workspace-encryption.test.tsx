@@ -91,7 +91,9 @@ describe("turning encryption on and off", () => {
     await act(() => api!.encryption.enable(passphrase));
     await waitFor(() => expect(isEnvelope(saved())).toBe(true));
     expect(saved()).not.toContain("Pasien Rahasia");
-    act(() => api!.encryption.disable());
+    await expect(api!.encryption.disable("passphrase-salah-1")).rejects.toThrow("Passphrase salah.");
+    expect(isEnvelope(saved())).toBe(true);
+    await act(() => api!.encryption.disable(passphrase));
     await waitFor(() => expect(saved()).toContain("Pasien Rahasia"));
     await act(() => api!.encryption.enable(passphrase));
     await waitFor(() => expect(isEnvelope(saved())).toBe(true));
@@ -99,6 +101,38 @@ describe("turning encryption on and off", () => {
     expect(await screen.findByRole("heading", { name: "Workspace terkunci" })).toBeTruthy();
     expect(screen.queryByText(/Pasien Rahasia/)).toBeNull();
   });
+  // Checking the passphrase takes a moment; a lock in that moment (the button, or the 30-minute idle lock) empties the
+  // workspace in memory, and the disable must not then write that empty workspace over the envelope.
+  it("keeps the envelope when the workspace locks while turning encryption off", async () => {
+    localStorage.setItem(keys.storageKey, JSON.stringify(named));
+    render(<Harness/>);
+    await screen.findByText("Pasien Rahasia");
+    await act(() => api!.encryption.enable(passphrase));
+    await waitFor(() => expect(isEnvelope(saved())).toBe(true));
+    const sealed = saved();
+    await act(async () => {
+      const off = api!.encryption.disable(passphrase).catch(() => undefined);
+      await api!.encryption.lockNow();
+      await off;
+    });
+    expect(saved()).toBe(sealed);
+    expect(await screen.findByRole("heading", { name: "Workspace terkunci" })).toBeTruthy();
+  });
+
+  it("clears the passphrase field after encryption was turned off", async () => {
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    const disable = vi.fn(async () => undefined);
+    const props = { state: named, unreadable: null, onRestore: () => undefined, onClear: () => undefined, onInvalidImport: () => undefined, onPush: () => undefined, onPull: () => undefined, syncBusy: false, onClose: () => undefined };
+    const { rerender } = render(<AccountDialog {...props} encryption={{ enabled: true, enable: async () => undefined, disable, lockNow: async () => undefined }}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Matikan enkripsi" }));
+    fireEvent.change(screen.getByLabelText("Passphrase saat ini"), { target: { value: passphrase } });
+    fireEvent.click(screen.getByRole("button", { name: "Matikan enkripsi sekarang" }));
+    await waitFor(() => expect(disable).toHaveBeenCalled());
+    rerender(<AccountDialog {...props} encryption={{ enabled: false, enable: async () => undefined, disable, lockNow: async () => undefined }}/>);
+    rerender(<AccountDialog {...props} encryption={{ enabled: true, enable: async () => undefined, disable, lockNow: async () => undefined }}/>);
+    expect(screen.queryByLabelText("Passphrase saat ini")).toBeNull();
+  });
+
   it("keeps an edit made while locking waits for the save before it", async () => {
     localStorage.setItem(keys.storageKey, JSON.stringify(named));
     render(<Harness/>);
@@ -182,7 +216,7 @@ describe("final review fixes", () => {
   it("shows why enabling failed", async () => {
     const enable = vi.fn(async () => { throw new Error("Workspace terlalu besar untuk dienkripsi di browser ini."); });
     URL.createObjectURL = vi.fn(() => "blob:x"); URL.revokeObjectURL = vi.fn();
-    render(<AccountDialog state={named} unreadable={null} onRestore={() => undefined} onClear={() => undefined} onInvalidImport={() => undefined} onPush={() => undefined} onPull={() => undefined} syncBusy={false} onClose={() => undefined} encryption={{ enabled: false, enable, disable: () => undefined, lockNow: async () => undefined }}/>);
+    render(<AccountDialog state={named} unreadable={null} onRestore={() => undefined} onClear={() => undefined} onInvalidImport={() => undefined} onPush={() => undefined} onPull={() => undefined} syncBusy={false} onClose={() => undefined} encryption={{ enabled: false, enable, disable: async () => undefined, lockNow: async () => undefined }}/>);
     fireEvent.click(screen.getByRole("button", { name: "Unduh backup dulu" }));
     fireEvent.change(screen.getByLabelText("Passphrase baru"), { target: { value: passphrase } });
     fireEvent.change(screen.getByLabelText("Ulangi passphrase"), { target: { value: passphrase } });
@@ -192,11 +226,29 @@ describe("final review fixes", () => {
 });
 
 describe("account dialog", () => {
+  it("is titled Data workspace, as its menu item", () => {
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    render(<AccountDialog state={named} unreadable={null} onRestore={() => undefined} onClear={() => undefined} onInvalidImport={() => undefined} onPush={() => undefined} onPull={() => undefined} syncBusy={false} onClose={() => undefined} encryption={{ enabled: false, enable: async () => undefined, disable: async () => undefined, lockNow: async () => undefined }}/>);
+    expect(screen.getByRole("heading", { level: 2, name: "Data workspace" })).toBeTruthy();
+  });
+  it("asks for the current passphrase before turning encryption off, and shows a wrong one", async () => {
+    const disable = vi.fn(async (given: string) => { if (given !== passphrase) throw new Error("Passphrase salah."); });
+    render(<AccountDialog state={named} unreadable={null} onRestore={() => undefined} onClear={() => undefined} onInvalidImport={() => undefined} onPush={() => undefined} onPull={() => undefined} syncBusy={false} onClose={() => undefined} encryption={{ enabled: true, enable: async () => undefined, disable, lockNow: async () => undefined }}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Matikan enkripsi" }));
+    expect(disable).not.toHaveBeenCalled();
+    const field = screen.getByLabelText("Passphrase saat ini");
+    fireEvent.change(field, { target: { value: "passphrase-salah-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Matikan enkripsi sekarang" }));
+    expect(await screen.findByText("Passphrase salah.")).toBeTruthy();
+    fireEvent.change(field, { target: { value: passphrase } });
+    fireEvent.click(screen.getByRole("button", { name: "Matikan enkripsi sekarang" }));
+    await waitFor(() => expect(disable).toHaveBeenLastCalledWith(passphrase));
+  });
   const props = { state: named, unreadable: null, onRestore: () => undefined, onClear: () => undefined, onInvalidImport: () => undefined, onPush: () => undefined, onPull: () => undefined, syncBusy: false, onClose: () => undefined };
   beforeEach(() => { URL.createObjectURL = vi.fn(() => "blob:x"); URL.revokeObjectURL = vi.fn(); });
   it("enables encryption only after a backup download and two matching passphrases (D2)", async () => {
     const enable = vi.fn(async () => undefined);
-    render(<AccountDialog {...props} encryption={{ enabled: false, enable, disable: () => undefined, lockNow: async () => undefined }}/>);
+    render(<AccountDialog {...props} encryption={{ enabled: false, enable, disable: async () => undefined, lockNow: async () => undefined }}/>);
     expect(screen.getByText(/tidak dapat dipulihkan/)).toBeTruthy();
     const button = screen.getByRole("button", { name: "Aktifkan enkripsi" }) as HTMLButtonElement;
     fireEvent.change(screen.getByLabelText("Passphrase baru"), { target: { value: passphrase } });
@@ -215,7 +267,7 @@ describe("account dialog", () => {
     await waitFor(() => expect(enable).toHaveBeenCalledWith(passphrase));
   });
   it("warns that the export is not encrypted while encryption is on (D3)", () => {
-    render(<AccountDialog {...props} encryption={{ enabled: true, enable: async () => undefined, disable: () => undefined, lockNow: async () => undefined }}/>);
+    render(<AccountDialog {...props} encryption={{ enabled: true, enable: async () => undefined, disable: async () => undefined, lockNow: async () => undefined }}/>);
     expect(screen.getByText(/Browser menyimpan workspace di perangkat ini terenkripsi dengan passphrase./)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Ekspor backup/ }));
     expect(URL.createObjectURL).not.toHaveBeenCalled();

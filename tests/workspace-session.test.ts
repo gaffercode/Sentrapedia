@@ -12,6 +12,8 @@ describe("workspace keyboard shortcuts", () => {
     expect(shortcutFor(key("J", { meta: true }), false)).toBe("commands");
     expect(shortcutFor(key("/", { ctrl: true }), false)).toBe("search");
     expect(shortcutFor(key("k", { meta: true }), false)).toBe("new");
+    // Shift or Caps Lock reports the key as "K", as it does "J".
+    expect(shortcutFor(key("K", { ctrl: true }), false)).toBe("new");
   });
   it("ignores plain keys, and every shortcut while a dialog or the mobile navigation is open", () => {
     expect(shortcutFor(key("j"), false)).toBeNull();

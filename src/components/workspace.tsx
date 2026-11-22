@@ -216,8 +216,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
         onCommands={() => openDialog("commands")}
         onFocus={() => smooth(() => { setMobileNavOpen(false); setFocusMode((value) => !value); })}
         onExport={() => downloadText(encounter?.messages.map((m) => reviewedText(diagnosisContent(m), m.reviewStatus)).join("\n\n---\n\n") ?? "", downloadName(encounter?.title ?? "encounter"))}
-        documentCount={documents.length} paneOpen={compact ? dialog === "document" : split} onPane={() => compact ? openDocument() : smooth(() => setPane({ open: !split }))}
-        onUpgrade={() => openDialog("upgrade")}/>
+        documentCount={documents.length} paneOpen={compact ? dialog === "document" : split} onPane={() => compact ? openDocument() : smooth(() => setPane({ open: !split }))}/>
       <div className="workspace-body" data-split={split || undefined}>
         {!hasMessages ? <HomeView name={state.settings.name ?? ""} headline={headlineFor(visit)} pill={state.settings.environment ?? "Layanan primer"} composer={composerProps}/> : <>
           <div className="chat-column">

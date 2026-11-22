@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { greeting } from "../lib/ui-labels";
 
 // An Indonesian greeting with the saved name ("Selamat malam, dr. Rani") and the motion of
@@ -38,6 +38,19 @@ function Moon({ phase }: { phase: number }) {
   return <><circle cx="12" cy="12" r={r} opacity={0.3}/><path d={d} fill="currentColor" stroke="none"/></>;
 }
 
+// The line is typed once, a character at a time, with a caret that leaves when it is done (Gaffer, 2026-11-21).
+// The whole line stays in the document: the part not typed yet is transparent, so the width never changes
+// and a screen reader gets the full greeting. With reduced motion, CSS shows it all at once.
+function TypedLine({ line }: { line: string }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (count >= line.length) return;
+    const timer = setTimeout(() => setCount(count + 1), 110);
+    return () => clearTimeout(timer);
+  }, [count, line.length]);
+  return <span className="greeting-text"><span className="greeting-typed">{line.slice(0, count)}</span>{count < line.length && <span className="greeting-caret" aria-hidden="true"/>}<span className="greeting-rest">{line.slice(count)}</span></span>;
+}
+
 export function WorkspaceGreeting({ name }: { name: string }) {
   const minute = useSyncExternalStore(subscribeMinute, minuteSnapshot, serverSnapshot);
   let glyph = null, text = null;
@@ -49,8 +62,8 @@ export function WorkspaceGreeting({ name }: { name: string }) {
     // Keyed by body, so the new one rises when the sun sets or rises.
     glyph = <span key={sunUp ? "sun" : "moon"} className="greeting-arc"><svg className="greeting-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">{sunUp ? <Sun hour={hour}/> : <Moon phase={moonPhase(minute * 60_000)}/>}</svg></span>;
     const line = greeting(hour, name);
-    // Keyed by the words, so a new part of the day or a new name fades in.
-    text = <span key={line} className="greeting-text">{line}</span>;
+    // Keyed by the words, so a new part of the day or a new name is typed again.
+    text = <TypedLine key={line} line={line}/>;
   }
   // The glyph slot is reserved from the first render, so its arrival never nudges the text.
   return <span className="workspace-greeting"><span className="greeting-slot" aria-hidden="true">{glyph}</span>{text}</span>;

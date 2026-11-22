@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { draftModels, modes } from "../lib/drafts";
 import { specialtyLabel, modelLabel } from "../lib/ui-labels";
@@ -11,13 +11,26 @@ export interface TheOracleIndexInfo { id: string; chunks: number; model: string;
 type Tab = "preferences" | "modes" | "knowledge";
 const tabs: { id: Tab; label: string }[] = [{ id: "preferences", label: "Preferensi" }, { id: "modes", label: "Mode dan templat" }, { id: "knowledge", label: "Pengetahuan" }];
 
+// Settings from `base` with the mode instructions of `from` (none when it has none).
+function withModes(base: Settings, from: Settings): Settings { const { modeInstructions: _dropped, ...rest } = base; void _dropped; return from.modeInstructions ? { ...rest, modeInstructions: from.modeInstructions } : rest; }
+// Compared by value, any key order, with an empty text the same as no value (an edit typed and deleted again).
+const canonical = (value: unknown): unknown => value && typeof value === "object" ? Object.entries(value).filter(([, item]) => item !== "" && item !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]) : value;
+const sameSettings = (a: Settings, b: Settings) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
 // Pengaturan Agent (spec section 7): the settings dialog as a page, three tabs. Preferences and mode instructions are saved
 // with one settings.save each; the template manager dispatches its own actions as it did in the dialog.
-export function AgentSettings({ state, dispatch, theoracle }: { state: Workspace; dispatch: (action: WorkspaceAction) => void; theoracle: TheOracleIndexInfo | null }) {
+export function AgentSettings({ state, dispatch, theoracle, onUnsaved }: { state: Workspace; dispatch: (action: WorkspaceAction) => void; theoracle: TheOracleIndexInfo | null; onUnsaved?: (unsaved: boolean) => void }) {
   const [tab, setTab] = useState<Tab>("preferences");
   const [draft, setDraft] = useState(state.settings);
+  // The page can mount this form before the stored workspace is restored: the form follows the saved settings whenever they
+  // change outside it, so it never shows, or saves, the defaults over them.
+  const [source, setSource] = useState(state.settings);
+  if (source !== state.settings) { setSource(state.settings); setDraft(state.settings); }
+  useEffect(() => { onUnsaved?.(!sameSettings(draft, state.settings)); }, [draft, state.settings, onUnsaved]);
   const [saved, setSaved] = useState("");
-  const save = (next: Settings, message: string) => { dispatch({ type: "settings.save", settings: next }); setDraft(next); setSaved(message); };
+  // Each tab saves only its own fields; the other tab's unsaved edits stay in the draft, so the follow rule above must not
+  // treat this save as a change from outside.
+  const save = (next: Settings, message: string) => { dispatch({ type: "settings.save", settings: next }); setSource(next); setSaved(message); };
   const instruction = (mode: typeof modes[number]["id"], text: string) => {
     const modeInstructions = { ...draft.modeInstructions, [mode]: text };
     if (!text.trim()) delete modeInstructions[mode];
@@ -27,7 +40,7 @@ export function AgentSettings({ state, dispatch, theoracle }: { state: Workspace
   return <section className="agent-settings" aria-label="Pengaturan Agent">
     <div className="agent-tabs" role="tablist" aria-label="Bagian pengaturan">{tabs.map((item) => <button key={item.id} type="button" role="tab" id={`agent-tab-${item.id}`} aria-selected={tab === item.id} aria-controls={`agent-panel-${item.id}`} onClick={() => { setTab(item.id); setSaved(""); }}>{item.label}</button>)}</div>
     <div role="tabpanel" id={`agent-panel-${tab}`} aria-labelledby={`agent-tab-${tab}`} className="agent-panel">
-      {tab === "preferences" && <form onSubmit={(e) => { e.preventDefault(); save(draft, "Preferensi Agent tersimpan."); }}>
+      {tab === "preferences" && <form onSubmit={(e) => { e.preventDefault(); save(withModes(draft, state.settings), "Preferensi Agent tersimpan."); }}>
         <label className="field"><span>Nama panggilan</span><input aria-label="Nama panggilan" placeholder="Contoh: dr. Rani" value={draft.name ?? ""} onChange={(e) => setDraft({ ...draft, name: e.target.value })} maxLength={60}/><small>Dipakai untuk sapaan di beranda.</small></label>
         <label className="field"><span>Specialty</span><select aria-label="Specialty" value={draft.specialty} onChange={(e) => setDraft({ ...draft, specialty: e.target.value })}>{specialties.map((s) => <option key={s} value={s}>{specialtyLabel(s)}</option>)}</select></label>
         <label className="field"><span>Lingkungan</span><select aria-label="Lingkungan" value={draft.environment ?? environments[0]} onChange={(e) => setDraft({ ...draft, environment: e.target.value as Settings["environment"] })}>{environments.map((item) => <option key={item}>{item}</option>)}</select><small>Ditampilkan di beranda encounter.</small></label>
@@ -37,7 +50,7 @@ export function AgentSettings({ state, dispatch, theoracle }: { state: Workspace
         <div className="workflow-actions"><button className="button primary">Simpan preferensi</button></div>
       </form>}
       {tab === "modes" && <>
-        <form className="agent-modes" onSubmit={(e) => { e.preventDefault(); save(draft, "Instruksi mode tersimpan."); }}>
+        <form className="agent-modes" onSubmit={(e) => { e.preventDefault(); save(withModes(state.settings, draft), "Instruksi mode tersimpan."); }}>
           <p className="panel-caption">Instruksi tambahan per mode, dipakai pada draf lokal saja. Prompt AADI tidak dapat diubah dari sini.</p>
           {modes.map((mode) => <label className="field" key={mode.id}><span>{mode.label}</span><textarea aria-label={`Instruksi mode ${mode.label}`} rows={2} maxLength={1000} value={draft.modeInstructions?.[mode.id] ?? ""} onChange={(e) => instruction(mode.id, e.target.value)}/></label>)}
           <div className="workflow-actions"><button className="button primary">Simpan instruksi mode</button></div>
