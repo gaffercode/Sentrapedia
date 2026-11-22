@@ -56,9 +56,17 @@ export async function sendContactViaResend(contact, { apiKey, from, recipient = 
     }),
     signal: AbortSignal.timeout(8000)
   });
-  if (!response.ok) return null;
+  // The status code is the only provider detail kept for the operator; the provider's error body is never logged.
+  if (!response.ok) throw new Error(`resend-http-${response.status}`);
   const result = await response.json();
-  return typeof result.id === 'string' && result.id ? result.id : null;
+  if (typeof result.id !== 'string' || !result.id) throw new Error('resend-no-id');
+  return result.id;
+}
+
+// One JSON line per delivery failure, written to stderr so Vercel records it at error level. It names the reason only:
+// no visitor field, address, IP or message text is ever passed here.
+function logDeliveryFailure(log, reason) {
+  log(JSON.stringify({ event: 'contact_delivery_failed', reason }));
 }
 
 export function createContactHandler({
@@ -67,7 +75,8 @@ export function createContactHandler({
   publicOrigin = process.env.CONTACT_PUBLIC_ORIGIN,
   recipient = process.env.CONTACT_RECIPIENT || DEFAULT_RECIPIENT,
   fetchEmail = fetch,
-  now = Date.now
+  now = Date.now,
+  log = console.error
 } = {}) {
   const attempts = new Map();
   return async (req, res) => {
@@ -114,14 +123,17 @@ export function createContactHandler({
       return;
     }
     if (!apiKey || !from) {
+      logDeliveryFailure(log, 'not-configured');
       json(res, 503, { status: 'unavailable', message: 'Layanan pengiriman belum tersedia.' });
       return;
     }
     try {
       const id = await sendContactViaResend(contact, { apiKey, from, recipient, fetchEmail });
-      if (!id) throw new Error('resend-rejected');
+      if (!id) throw new Error('invalid-sender');
       json(res, 202, { status: 'accepted' });
-    } catch {
+    } catch (error) {
+      // TimeoutError: no answer within 8 s; TypeError: network failure; resend-*: the provider refused the message.
+      logDeliveryFailure(log, error?.name === 'Error' ? error.message : String(error?.name || 'unknown'));
       json(res, 502, { status: 'unavailable', message: 'Layanan pengiriman gagal menerima pesan.' });
     }
   };
