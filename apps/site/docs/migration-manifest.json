@@ -292,7 +292,7 @@
     },
     {
       "path": "source/index.html",
-      "sha256": "2698e042002ad42167fa8760273bec52a659806b531807bcb163c9096695a489"
+      "sha256": "f1fc3013ba93c537c5868723e5afce1dc1d61cb8b49330f058717c30a5975499"
     },
     {
       "path": "assets/system-anatomy.css",
@@ -496,7 +496,7 @@
     },
     {
       "path": "scripts/browser/menu.js",
-      "sha256": "15e7ba1e5e1894c5cb7d7f70fd4a472905225d04c2ecde4bcba5b9b6df56a918"
+      "sha256": "29a79a8f170347c22811c3936132ef2106cf971d87ed6e8b76dc35dd1d9f777d"
     },
     {
       "path": "scripts/browser/reveal.js",
@@ -549,6 +549,10 @@
     {
       "path": "assets/sentrapedia-solusi-poster.webp",
       "sha256": "cd8e833e4d26f6ea3b0bf4b3a0c33282405650d60fadaf46bde48612187d4a62"
+    },
+    {
+      "path": "static/assets/theme/fonts/Inter-OFL.txt",
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
     }
   ]
 }

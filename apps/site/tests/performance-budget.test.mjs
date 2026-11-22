@@ -191,13 +191,15 @@ test('each film starts buffering before it plays, never with the page and never 
   assert.match(await readFile(new URL('media/clinical-video.js', site), 'utf8'), /visible = entries\[0\]\.isIntersecting;[\s\S]*?\{ threshold: 0\.2 \}/);
 });
 
-test('no external script blocks parsing, and the theme scripts keep their order', async () => {
+test('no external script blocks parsing, and the jQuery theme scripts are not loaded', async () => {
   // Before: jQuery, jQuery Migrate, Bootstrap, Slick and the theme script sat in <head> without defer; the review
   // estimated 1,590 ms of render blocking on mobile, part of it theirs. Deferred scripts still run in document order.
   const html = await readFile(new URL('index.html', site), 'utf8');
   const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=[^>]*>/g)].map(match => match[0]);
   for (const tag of scripts) assert.match(tag, /\sdefer\b|type="module"/, `parser-blocking script: ${tag}`);
-  assert.deepEqual(scripts.slice(0, 5).map(tag => /id="([^"]+)"/.exec(tag)?.[1]), ['jquery-core-js', 'jquery-migrate-js', 'bootstrap-js', 'slick-js', 'custom-js']);
+  // 2026-11-22: the five were then removed; the menu toggle and the scrolled header live in scripts/browser/menu.js.
+  for (const name of ['jquery', 'bootstrap.bundle', 'slick', 'custom55e2']) assert.ok(!scripts.some(tag => tag.includes(name)), `${name} is loaded again`);
+  assert.doesNotMatch(html, /slick\.min\.css/);
   // Nothing inline may call jQuery while the page is still being parsed.
   for (const [, body] of html.matchAll(/<script\b(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/g)) assert.doesNotMatch(body, /\bjQuery\b|\$\(/);
 });
