@@ -36,6 +36,16 @@ const refusals = {
 const refuse = (code: keyof typeof refusals): LimitRefusal => ({ ok: false, code, status: refusals[code][0], message: refusals[code][1] });
 const micro = (usd: number) => Math.round(usd * 1e6) / 1e6;
 
+/**
+ * Why the store failed, in a form safe to log: a Postgres SQLSTATE (42P01 missing table, 42501 permission, 28P01
+ * password) or a Node network code (ENOTFOUND, ECONNREFUSED, ETIMEDOUT). Never the error message, which can name the
+ * host, the role or a value. docs/data.md maps the codes to their fixes.
+ */
+export function storeFailureCode(error: unknown): string {
+  const code = error && typeof error === "object" && "code" in error ? (error as { code: unknown }).code : undefined;
+  return typeof code === "string" && /^[A-Z0-9_]{2,32}$/.test(code) ? code : "UNKNOWN";
+}
+
 /** The daily quota as configured: a whole number from 1 to 9999, or null when it is unset or unusable. */
 export function parseDailyQuota(value: string | undefined): number | null {
   return value !== undefined && /^[1-9]\d{0,3}$/.test(value.trim()) ? Number(value.trim()) : null;
@@ -50,18 +60,21 @@ export function createAnalysisLimits(options: { store?: LimitsStore; quota: stri
       const quota = parseDailyQuota(options.quota);
       if (!options.store || !principal || quota === null) return null;
       try { return { used: await options.store.used(principal, now().toISOString().slice(0, 10)), quota }; }
-      catch { log({ event: "aadi.limits", level: "error", stage: "usage" }); return null; }
+      catch (error) { log({ event: "aadi.limits", level: "error", stage: "usage", code: storeFailureCode(error) }); return null; }
     },
     async admit(principal) {
       const store = options.store;
-      if (!store || !principal) return refuse("LIMITS_UNAVAILABLE");
+      if (!store || !principal) {
+        log({ event: "aadi.limits", level: "error", stage: "admit", code: store ? "NO_PRINCIPAL" : "NO_STORE" });
+        return refuse("LIMITS_UNAVAILABLE");
+      }
       const quota = parseDailyQuota(options.quota);
       if (quota === null) return refuse("QUOTA_NOT_SET");
       if (!(options.dailyBudgetUsd > 0) || options.holdUsd > options.dailyBudgetUsd) return refuse("BUDGET_EXHAUSTED");
       const day = now().toISOString().slice(0, 10);
       let outcome: Awaited<ReturnType<LimitsStore["admit"]>>;
       try { outcome = await store.admit(principal, day, quota, options.holdUsd, options.dailyBudgetUsd); }
-      catch { log({ event: "aadi.limits", level: "error", stage: "admit" }); return refuse("LIMITS_UNAVAILABLE"); }
+      catch (error) { log({ event: "aadi.limits", level: "error", stage: "admit", code: storeFailureCode(error) }); return refuse("LIMITS_UNAVAILABLE"); }
       if (outcome !== "admitted") return refuse(outcome === "quota" ? "QUOTA_EXCEEDED" : "BUDGET_EXHAUSTED");
       let settled = false;
       return { ok: true, settle: async (spentUsd, completed) => {
@@ -71,10 +84,10 @@ export function createAnalysisLimits(options: { store?: LimitsStore; quota: stri
         try {
           const state = await store.settle(principal, day, options.holdUsd, spent, completed, micro(options.dailyBudgetUsd * BUDGET_ALERT_FRACTION));
           if (state.alert) log({ event: "aadi.budget", level: "alert", day, spentUsd: micro(state.spentUsd), limitUsd: options.dailyBudgetUsd });
-        } catch {
+        } catch (error) {
           // The answer already exists and is returned. A hold that was not released keeps counting until the day
           // turns, so this failure can only make the budget stricter, never looser.
-          log({ event: "aadi.limits", level: "error", stage: "settle" });
+          log({ event: "aadi.limits", level: "error", stage: "settle", code: storeFailureCode(error) });
         }
       } };
     },

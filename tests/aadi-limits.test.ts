@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysisLimits, createMemoryLimitsStore, type LimitsStore } from "../src/lib/aadi/limits";
+import { createAnalysisLimits, createMemoryLimitsStore, storeFailureCode, type LimitsStore } from "../src/lib/aadi/limits";
 
 // Gated beta (Gaffer, 2026-11-17): a daily quota per person and one shared daily budget that stops new analyses
 // at 100% and raises an alert at 80%. The memory store used here follows the same rules as the SQL store
@@ -63,21 +63,39 @@ describe("configuration that would switch the guard off refuses instead", () => 
     expect(await limits.admit("user_a")).toMatchObject({ ok: false, code: "QUOTA_NOT_SET", status: 503 });
   });
 
-  it("refuses when no store is configured", async () => {
-    const { limits } = setup({ store: undefined });
+  it("refuses when no store is configured, and says so in the log", async () => {
+    const { limits, events } = setup({ store: undefined });
     expect(await limits.admit("user_a")).toMatchObject({ ok: false, code: "LIMITS_UNAVAILABLE", status: 503 });
+    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit", code: "NO_STORE" }]);
   });
 
   it("refuses when the store fails, and never runs the analysis unguarded", async () => {
     const broken: LimitsStore = { admit: async () => { throw new Error("connection refused"); }, settle: async () => ({ alert: false, spentUsd: 0 }), used: async () => 0 };
     const { limits, events } = setup({ store: broken });
     expect(await limits.admit("user_a")).toMatchObject({ ok: false, code: "LIMITS_UNAVAILABLE", status: 503 });
-    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit" }]);
+    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit", code: "UNKNOWN" }]);
+  });
+
+  it("logs the database's error code, never its message, so the operator can tell a missing table from a network fault", async () => {
+    const failure = Object.assign(new Error('relation "analysis_usage" does not exist on host db.example'), { code: "42P01" });
+    const broken: LimitsStore = { admit: async () => { throw failure; }, settle: async () => ({ alert: false, spentUsd: 0 }), used: async () => { throw failure; } };
+    const { limits, events } = setup({ store: broken });
+    expect(await limits.admit("user_a")).toMatchObject({ ok: false, code: "LIMITS_UNAVAILABLE", status: 503 });
+    expect(await limits.usage("user_a")).toBeNull();
+    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit", code: "42P01" }, { event: "aadi.limits", level: "error", stage: "usage", code: "42P01" }]);
+    expect(JSON.stringify(events)).not.toMatch(/relation|host|example/);
+  });
+
+  it("ignores an error code that is not a plain code", async () => {
+    expect(storeFailureCode(Object.assign(new Error("x"), { code: "postgres://user:secret@host" }))).toBe("UNKNOWN");
+    expect(storeFailureCode("ECONNREFUSED")).toBe("UNKNOWN");
+    expect(storeFailureCode(Object.assign(new Error("x"), { code: "ECONNREFUSED" }))).toBe("ECONNREFUSED");
   });
 
   it("refuses a caller without a principal", async () => {
-    const { limits } = setup();
+    const { limits, events } = setup();
     expect(await limits.admit(undefined)).toMatchObject({ ok: false, code: "LIMITS_UNAVAILABLE" });
+    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "admit", code: "NO_PRINCIPAL" }]);
   });
 
   it("keeps the answer when settling fails, and logs it without any case text", async () => {
@@ -85,7 +103,7 @@ describe("configuration that would switch the guard off refuses instead", () => 
     const flaky: LimitsStore = { admit: store.admit, settle: async () => { throw new Error("timeout"); }, used: store.used };
     const { limits, events } = setup({ store: flaky });
     await expect((await admitted(limits)).settle(0.01, true)).resolves.toBeUndefined();
-    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "settle" }]);
+    expect(events).toEqual([{ event: "aadi.limits", level: "error", stage: "settle", code: "UNKNOWN" }]);
   });
 });
 
