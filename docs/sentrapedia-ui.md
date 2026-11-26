@@ -162,3 +162,15 @@ Empat perbaikan P0 dari audit alur UI (SVI-CEO-RPT-001), status REVIEW:
 - Chip dan pemilih `/` menandai jenis mode: AI untuk lima mode yang dianalisis AADI, Template untuk tiga belas mode yang hanya menyusun ulang teks (`modeKind`). Draf lokal menulis "Template … disusun dari teks Anda, tanpa analisis AI."
 
 Verifikasi: seluruh vitest 841 lulus, 23 dilewati (data privat); lint dan typecheck bersih; pemeriksaan browser `next dev` mode auth lokal pada 1440 dan 390 px. Jawaban AADI live dan layar Clerk tidak diuji di lingkungan cloud.
+
+## Alur workspace lebih mulus (2026-11-26)
+
+Lanjutan audit (#5, #6, #9-#12), status REVIEW:
+
+- Membuka dialog (Tambah Konteks, Pasien, Templat, Pusat perintah, dan lainnya) tidak lagi membatalkan analisis yang sedang berjalan. Scribe tetap membatalkan karena memulai draf baru.
+- Selama item wajib Peninjauan belum dicentang, di bawah kepala dokumen tampil "Centang semua item wajib di Peninjauan untuk menandai Ditinjau." dengan tombol "Buka Peninjauan".
+- Di composer, kirim menjadi satu-satunya aksi utama (Mulai Scribe sekunder), dan Standar/Extended hanya tampil pada mode Template.
+- Pada 1201-1460 px dengan panel dokumen terbuka, Scribe dan Konteks tampil sebagai ikon (nama aksesibel dan tooltip tetap), sehingga toolbar composer satu baris. Baris chip memudar di tepi kanan sebagai tanda bisa digulir.
+- Catatan usang "Hubungkan AI Clinical" pada jawaban pertanyaan dihapus.
+
+Verifikasi: vitest 849 lulus, 23 dilewati (data privat); lint dan typecheck bersih; tinggi toolbar diukur di browser pada 1440, 1210, 1024 (satu baris) dan 390 px (dua baris, sesuai desain HP).
