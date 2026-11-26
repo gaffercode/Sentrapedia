@@ -116,7 +116,9 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   useEffect(() => { const handler = (e: KeyboardEvent) => { const shortcut = shortcutFor(e, Boolean(dialog) || (mobile && mobileNavOpen)); if (!shortcut) return; e.preventDefault(); if (shortcut === "new") { dispatch({ type: "encounter.select", id: null }); setPrompt(""); changeMode("question"); } else setDialog(shortcut); }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }, [dialog, mobile, mobileNavOpen, changeMode]);
 
   // One dialog replacing another cross-fades; a first dialog fades in through CSS.
-  function openDialog(name: DialogName, id?: string) { if (analysisController.current) cancelAnalysis(); const open = () => { setDialog(name); setDialogId(id); }; if (dialog) smooth(open); else open(); }
+  // A dialog no longer cancels a running analysis (UI audit #5): the request already carries its case, so editing the
+  // context or a patient meanwhile cannot change it. Scribe is the exception: it starts a new draft, which needs the composer free.
+  function openDialog(name: DialogName, id?: string) { if (name === "scribe" && analysisController.current) cancelAnalysis(); const open = () => { setDialog(name); setDialogId(id); }; if (dialog) smooth(open); else open(); }
   function hideDialog() { setDialog(null); setDialogId(undefined); }
   function closeDialog() { if (dialog) smooth(hideDialog); else hideDialog(); }
   // Below 1200 px the pane is a sheet; opening it leaves a running analysis alone.

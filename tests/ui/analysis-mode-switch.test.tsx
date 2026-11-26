@@ -8,6 +8,8 @@ beforeEach(() => {
   Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn().mockImplementation((query: string) => ({ matches: query.includes("reduce"), media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })) });
   global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
   Element.prototype.scrollIntoView = vi.fn();
+  HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
+  HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.removeAttribute("open"); });
   // Readiness answers at once; the analysis request itself never answers, so the workspace stays busy.
   global.fetch = vi.fn().mockImplementation(async (_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method !== "POST") return new Response(JSON.stringify({ configured: true, modelReady: true, groundingReady: true, ready: true }), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -37,5 +39,16 @@ describe("a mode picked while an analysis is running", () => {
     expect(screen.getByRole("button", { name: "Batalkan analisis" })).toBeTruthy();
     expect(screen.getByText("Laki-laki 45 tahun, nyeri kepala, N 88")).toBeTruthy();
     expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "POST")).toHaveLength(1);
+  });
+
+  it("opening a dialog such as Tambah Konteks leaves the running analysis alone", async () => {
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.change(screen.getByLabelText("Pertanyaan atau catatan klinis"), { target: { value: "Laki-laki 45 tahun, nyeri kepala, N 88" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Analisis kasus" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Tambah Konteks" })); });
+    expect(screen.getByRole("button", { name: "Batalkan analisis" })).toBeTruthy();
+    expect(screen.getByText("Laki-laki 45 tahun, nyeri kepala, N 88")).toBeTruthy();
+    expect((screen.getByLabelText("Pertanyaan atau catatan klinis") as HTMLTextAreaElement).value).toBe("");
   });
 });
