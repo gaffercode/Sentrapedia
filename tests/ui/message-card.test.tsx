@@ -41,6 +41,12 @@ describe("MessageCard", () => {
     print.mockRestore();
   });
 
+  it("a question answer carries no stale 'Hubungkan AI Clinical' note", () => {
+    render(<MessageCard message={a("question", "Jawaban.")} {...handlers()}/>);
+    expect(screen.queryByText(/Siap untuk peninjauan Evidence/)).toBeNull();
+    expect(screen.queryByText(/Hubungkan AI Clinical/)).toBeNull();
+  });
+
   it("a document answer is one line plus a card that opens the pane", () => {
     const h = handlers();
     const message = a("clinic", "# Catatan Klinis\n\n## S\nx");

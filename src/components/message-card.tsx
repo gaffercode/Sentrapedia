@@ -41,7 +41,6 @@ export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument 
       {trace.length > 0 && <details className="pipeline-trace"><summary>Jejak analisis</summary><ol>{trace.map((step, index) => <li key={index}>{step.stage} · {step.ms} ms{step.ok ? "" : " · gagal"}</li>)}</ol></details>}
     </> : <>
       <DocumentContent content={content} onEdit={onEdit}/>
-      {message.mode === "question" && <div className="evidence-handoff"><strong>Siap untuk peninjauan Evidence</strong><span>Hubungkan AI Clinical dan sumber terverifikasi untuk menjawab ringkasan ini. Draf dapat diedit dan diekspor.</span></div>}
       <footer className="message-actions">
         <button type="button" className="icon-button" aria-label="Salin" title="Salin" onClick={copy}><Copy size={15}/></button>
         <button type="button" className="icon-button" aria-label="Cetak" title="Cetak" onClick={() => printDocument(article.current, message.reviewStatus)}><Printer size={15}/></button>
