@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, invalidCaseField, readCaseFields } from "../src/lib/aadi/composer";
+import { caseMismatch, knownCaseFields, composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, invalidCaseField, readCaseFields } from "../src/lib/aadi/composer";
 import { emptyCase, type AadiAnalysis } from "../src/lib/aadi/contract";
 import { validCase } from "../src/lib/aadi/contract";
 import { hasAadiSource } from "../src/lib/aadi/presentation";
-import { initialWorkspace } from "../src/lib/workspace";
+import { initialWorkspace, type Encounter } from "../src/lib/workspace";
 
 describe("main clinical composer", () => {
   it("labels only structured AADI source snapshots as AADI drafts", () => {
@@ -89,5 +89,26 @@ describe("demo patient note", () => {
     const demo = initialWorkspace.patients[0];
     expect(composerCase("demam 3 hari", "", demo).anamnesis.freeText).toBeUndefined();
     expect(composerCase("demam 3 hari", "", { ...demo, notes: "Alergi amoksisilin" }).anamnesis.freeText).toBe("Catatan kasus\nAlergi amoksisilin");
+  });
+});
+
+describe("case boundary", () => {
+  it("flags a different sex or an age more than a year apart", () => {
+    const known = { age: "45", sex: "M" };
+    expect(caseMismatch(readCaseFields("Perempuan 30 tahun, nyeri perut"), known)).toBe("sex");
+    expect(caseMismatch(readCaseFields("laki-laki 62 tahun"), known)).toBe("age");
+    expect(caseMismatch(readCaseFields("laki-laki 46 tahun, kontrol"), known)).toBeNull();
+  });
+  it("unknown is never a mismatch", () => {
+    expect(caseMismatch(readCaseFields("perempuan 30 tahun"), {})).toBeNull();
+    expect(caseMismatch({}, { age: "45", sex: "M" })).toBeNull();
+  });
+  it("durations are not ages", () => {
+    expect(caseMismatch(readCaseFields("demam 3 hari, batuk 2 minggu"), { age: "45" })).toBeNull();
+  });
+  it("reads what the encounter already knows from the patient, then the first case", () => {
+    const encounter = { messages: [{ id: "u", role: "user", content: "Laki-laki 45 tahun, demam", mode: "clinic", createdAt: "" }] } as Pick<Encounter, "messages">;
+    expect(knownCaseFields(encounter)).toEqual({ age: "45", sex: "M" });
+    expect(knownCaseFields(encounter, { age: "50", sex: "Female" })).toEqual({ age: "50", sex: "F" });
   });
 });

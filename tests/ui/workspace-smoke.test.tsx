@@ -264,6 +264,23 @@ describe("workspace UI smoke tests", () => {
     expect(pane.textContent).toMatch(/demam (sejak )?3 hari/i);
     expect(pane.textContent).not.toContain("Susun catatan SOAP dari kasus berikut:");
   });
+  it("asks before filing a different patient in the same encounter", async () => {
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: /Catatan Klinis \(SOAP\)/ }));
+    const box = () => screen.getByLabelText("Pertanyaan atau catatan klinis") as HTMLTextAreaElement;
+    fireEvent.change(box(), { target: { value: "Laki-laki 45 tahun, demam 3 hari" } });
+    await act(async () => { fireEvent.keyDown(box(), { key: "Enter" }); });
+    fireEvent.change(box(), { target: { value: "Perempuan 30 tahun, nyeri perut" } });
+    await act(async () => { fireEvent.keyDown(box(), { key: "Enter" }); });
+    expect(screen.getByText("Data usia/jenis kelamin berbeda dari encounter ini.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Tetap di encounter ini" })).toBeTruthy();
+    expect(screen.queryByText("Perempuan 30 tahun, nyeri perut", { selector: ".user-message div" })).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Kasus baru" })); });
+    const user = [...document.querySelectorAll(".user-message div")].map((node) => node.textContent);
+    expect(user).toEqual(["Perempuan 30 tahun, nyeri perut"]);
+    expect(screen.getAllByRole("button", { name: /Opsi untuk/ })).toHaveLength(2);
+  });
   it("shows 'tidak dapat dibaca' notice for corrupt saved workspace and preserves raw text in backup", async () => {
     const corruptData = "{ corrupt invalid json content";
     localStorage.setItem(storageKey, corruptData);

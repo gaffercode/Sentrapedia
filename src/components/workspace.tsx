@@ -24,7 +24,7 @@ import { KnowledgeDialog } from "./knowledge-dialog";
 import { diagnosisContent, aadiMessage, pcareCopies } from "../lib/aadi/presentation";
 import { paneDocuments } from "../lib/document-pane";
 import type { AadiAnalysis } from "../lib/aadi/contract";
-import { composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, readCaseFields, type CaseFields } from "../lib/aadi/composer";
+import { caseMismatch, composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, knownCaseFields, readCaseFields, type CaseFields } from "../lib/aadi/composer";
 import { requestAadiAnalysis } from "../lib/aadi/client";
 import { smooth } from "./smooth";
 import { useMediaQuery, useToast, useWorkspacePersistence } from "./workspace-hooks";
@@ -69,6 +69,8 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const [caseFields, setCaseFields] = useState<CaseFields>(emptyCaseFields);
   const resetCaseFields = useCallback(() => setCaseFields(emptyCaseFields()), []);
   const [analysisError, setAnalysisError] = useState("");
+  // A case whose age or sex differs from the open encounter waits here until the doctor picks where it goes (P0 #3).
+  const [held, setHeld] = useState<{ text: string; mode: ModeId; useTemplate: boolean; local: boolean; fallback?: string } | null>(null);
   // The question being analysed: shown at once as the user's message, saved only with its answer.
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
@@ -125,7 +127,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   }
   function savePatient(p: Patient) { const exists = state.patients.some((item) => item.id === p.id); dispatch({ type: exists ? "patient.edit" : "patient.add", patient: p }); if (!exists) { dispatch({ type: "encounter.add", encounter: newEncounter(p.id) }); setPrompt(""); } closeDialog(); notify(exists ? "Detail Pasien tersimpan." : "Pasien dibuat. Encounter pertama siap digunakan."); }
   function updatePrompt(value: string) {
-    setPrompt(value); setAnalysisError("");
+    setPrompt(value); setAnalysisError(""); setHeld(null);
     // Glass's composer is one text box (Gaffer, 2026-11-04): age, sex and vitals are read from the text, never edited apart.
     const found = readCaseFields(value);
     setCaseFields({ ...emptyCaseFields(), ...found });
@@ -135,21 +137,21 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   function fallbackDraft() {
     if (!prompt.trim() || busy) return;
     const reason = analysisError; setAnalysisError("");
-    generate(prompt, "clinic", false, true, reason);
+    generate(prompt, "clinic", false, true, reason, { confirmed: true });
     // Like an answered analysis, the next case starts with an empty strip.
     resetCaseFields();
     notify("Draf SOAP lokal disusun tanpa analisis AADI. Lengkapi dan verifikasi oleh klinisi.");
   }
-  async function analyzeMain(text: string, selectedMode: ModeId, current: Encounter) {
+  async function analyzeMain(text: string, selectedMode: ModeId, current: Encounter, isNew: boolean, casePatient?: Patient) {
     if (analysisController.current) return;
     const controller = new AbortController(); analysisController.current = controller;
     setBusy(true); setAnalysisError(""); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setPrompt("");
     // The home composer gives way to the chat composer; keep typing where the reader is.
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".chat-composer textarea")?.focus());
     try {
-      const analysis = await requestAadiAnalysis(composerCase(text, current.context, patient, caseFields), { signal: controller.signal, onQueuePosition: place => { if (analysisController.current === controller) setQueuePosition(place); } });
+      const analysis = await requestAadiAnalysis(composerCase(text, current.context, casePatient, caseFields), { signal: controller.signal, onQueuePosition: place => { if (analysisController.current === controller) setQueuePosition(place); } });
       if (controller.signal.aborted || analysisController.current !== controller) return;
-      if (!encounter) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
+      if (isNew) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
       dispatch({ type: "message.add", encounterId: current.id, messages: composerAadiMessages(analysis, text, selectedMode, state.reviewDefaults) });
       resetCaseFields();
       dispatch({ type: "encounter.select", id: current.id });
@@ -159,20 +161,24 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
       if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; }
     }
   }
-  function generate(typed = prompt, selectedMode = mode, useTemplate = true, local = false, fallback?: string) {
+  // confirmed: the doctor already chose where a mismatching case goes; fresh: it starts its own encounter, without a patient.
+  function generate(typed = prompt, selectedMode = mode, useTemplate = true, local = false, fallback?: string, { confirmed = false, fresh = false } = {}) {
     const text = stripOpening(typed);
     if (busy || analysisController.current || !text) return;
-    const current: Encounter = encounter ?? newEncounter();
+    const target = fresh ? undefined : encounter, targetPatient = fresh ? undefined : patient;
+    if (!confirmed && target?.messages.length && caseMismatch(readCaseFields(text), knownCaseFields(target, targetPatient))) { setHeld({ text, mode: selectedMode, useTemplate, local, fallback }); return; }
+    setHeld(null);
+    const current: Encounter = target ?? newEncounter();
     let content: string;
     const personal = useTemplate && selectedTemplate?.mode === selectedMode ? selectedTemplate : undefined;
     if (!local && composerUsesAadi(selectedMode, !!personal)) {
       // No minimum-data gate (Gaffer, 2026-11-04, like Glass): the case goes as typed; the report names what is missing.
-      void analyzeMain(text, selectedMode, current); return;
+      void analyzeMain(text, selectedMode, current, !target, targetPatient); return;
     }
-    try { content = personal ? createPersonalDraft(personal, text, current.context) : createDraft({ mode: selectedMode, prompt: text, context: current.context, ...state.settings, patient, caseFields: readCaseFields(text) }); } catch (error) { notify(error instanceof Error ? error.message : "Draf tidak dapat diformat.", "error"); return; }
+    try { content = personal ? createPersonalDraft(personal, text, current.context) : createDraft({ mode: selectedMode, prompt: text, context: current.context, ...state.settings, patient: targetPatient, caseFields: readCaseFields(text) }); } catch (error) { notify(error instanceof Error ? error.message : "Draf tidak dapat diformat.", "error"); return; }
     setBusy(true);
-    if (!encounter) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
-    const messages = localDraftMessages({ text, content, mode: selectedMode, context: current.context, patient, settings: state.settings, reviewDefaults: state.reviewDefaults, personal, fallback });
+    if (!target) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
+    const messages = localDraftMessages({ text, content, mode: selectedMode, context: current.context, patient: targetPatient, settings: state.settings, reviewDefaults: state.reviewDefaults, personal, fallback });
     dispatch({ type: "message.add", encounterId: current.id, messages });
     setPrompt(""); setBusy(false);
   }
@@ -199,7 +205,8 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     onMakeTasks: (text: string) => { const typed = prompt; generate(text, "tasks", false); setPrompt(typed); },
   };
   const paneFor = (onClose: () => void) => encounter && <DocumentPane encounter={encounter} activeId={pane.activeId} onActive={(activeId) => setPane({ activeId })} overview={<EncounterOverview state={state} encounter={encounter} patient={patient} {...overviewActions}/>} tools={paneTools} onClose={onClose} dispatch={dispatch} onToast={notify} drafts={drafts} onDraft={setDraft}/>;
-  const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft };
+  const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft,
+    mismatch: held && { onNew: () => generate(held.text, held.mode, held.useTemplate, held.local, held.fallback, { confirmed: true, fresh: true }), onKeep: () => generate(held.text, held.mode, held.useTemplate, held.local, held.fallback, { confirmed: true }) } };
 
   if (restoring) return <main className="system-loading" aria-busy="true"><PixelLoader label="Sedang membuka workspace…"/><p>Membuka workspace…</p></main>;
   if (locked) return <WorkspaceUnlock onUnlock={unlock} onForget={forget}/>;

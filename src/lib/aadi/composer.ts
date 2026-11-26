@@ -1,5 +1,5 @@
 import type { ModeId } from "../drafts";
-import { isSeedPatientNote, newId, type Message, type Patient } from "../workspace";
+import { isSeedPatientNote, newId, type Encounter, type Message, type Patient } from "../workspace";
 import type { ReviewItem } from "../workflow";
 import { emptyCase, type AadiAnalysis } from "./contract";
 import { aadiMessage } from "./presentation";
@@ -59,6 +59,25 @@ export function readCaseFields(text: string): Partial<CaseFields> {
   ];
   for (const [key, pattern] of vitals) { const value = new RegExp(pattern + notDuration, "i").exec(text)?.[1]; if (value && vitalOf[key](value) !== undefined) found[key] = value; }
   return found;
+}
+
+type KnownCase = Pick<Partial<CaseFields>, "age" | "sex">;
+/** What the encounter already says about who the case is: the saved patient first, then the first case typed into it. */
+export function knownCaseFields(encounter: Pick<Encounter, "messages">, patient?: Pick<Patient, "age" | "sex">): KnownCase {
+  const first = encounter.messages.find((message) => message.role === "user");
+  const typed = first ? readCaseFields(first.content) : {};
+  const sex = patient?.sex.trim().toLowerCase();
+  const age = patient && ageOf(patient.age) !== undefined ? patient.age.trim() : typed.age;
+  const known: KnownCase = { age, sex: sex === "male" || sex === "m" ? "M" : sex === "female" || sex === "f" ? "F" : typed.sex };
+  return Object.fromEntries(Object.entries(known).filter(([, value]) => value)) as KnownCase;
+}
+
+/** A typed case that names a different sex, or an age more than a year apart, from what the encounter already knows
+ *  (UI audit P0 #3). Anything unknown on either side is never a mismatch. */
+export function caseMismatch(typed: Partial<CaseFields>, known: KnownCase): "sex" | "age" | null {
+  if (typed.sex && known.sex && typed.sex !== known.sex) return "sex";
+  const a = typed.age ? ageOf(typed.age) : undefined, b = known.age ? ageOf(known.age) : undefined;
+  return a !== undefined && b !== undefined && Math.abs(a - b) > 1 ? "age" : null;
 }
 
 export function composerCase(prompt: string, context: string, patient?: Pick<Patient, "age" | "sex" | "notes"> & Partial<Pick<Patient, "name" | "id">>, fields?: CaseFields) {
