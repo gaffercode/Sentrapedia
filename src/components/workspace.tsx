@@ -154,17 +154,26 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     setBusy(true); setAnalysisError(""); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setPrompt("");
     // The home composer gives way to the chat composer; keep typing where the reader is.
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".chat-composer textarea")?.focus());
+    const finish = () => { if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; } };
+    let arriving = false;
     try {
       const analysis = await requestAadiAnalysis(composerCase(text, current.context, casePatient, caseFields), { signal: controller.signal, onQueuePosition: place => { if (analysisController.current === controller) setQueuePosition(place); } });
       if (controller.signal.aborted || analysisController.current !== controller) return;
-      if (isNew) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
-      dispatch({ type: "message.add", encounterId: current.id, messages: composerAadiMessages(analysis, text, selectedMode, state.reviewDefaults) });
-      resetCaseFields();
-      dispatch({ type: "encounter.select", id: current.id });
+      // The wait card leaves and the answer (with its document pane) arrives in one cross-fade, so the chat column's
+      // change of width reads as one soft step instead of a jump. A cancel in the frame before the fade still wins.
+      arriving = true;
+      smooth(() => {
+        if (controller.signal.aborted || analysisController.current !== controller) return;
+        if (isNew) dispatch({ type: "encounter.add", encounter: { ...current, title: text.trim().slice(0, 48) } });
+        dispatch({ type: "message.add", encounterId: current.id, messages: composerAadiMessages(analysis, text, selectedMode, state.reviewDefaults) });
+        resetCaseFields();
+        dispatch({ type: "encounter.select", id: current.id });
+        finish();
+      }, "arrive");
     } catch (error) {
       if (!controller.signal.aborted) { failedIntoNew.current = isNew; setAnalysisError(error instanceof Error ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia."); setPrompt(text); }
     } finally {
-      if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; }
+      if (!arriving) finish();
     }
   }
   // confirmed: the doctor already chose where a mismatching case goes; fresh: it starts its own encounter, without a patient.
