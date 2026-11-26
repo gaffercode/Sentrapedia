@@ -1,0 +1,127 @@
+{
+  "notice": "SYNTHETIC TEST FIXTURE. Invented consultations without patient identity, scored against corpus.json by tests/theoracle-eval.test.ts. Expected outcomes describe retrieval and evidence-gate behaviour, not clinical correctness.",
+  "thresholds": {
+    "note": "Calibrated on the first CI run with the pinned model (2026-11-26, Actions run 45874985015: clinical recall@6 1 / MRR 1, lay recall@6 1 / MRR 0.938, therapy dose recall 1). Raise a floor when the score rises; never lower one without Gaffer's word.",
+    "clinicalRecallAt6": 1,
+    "layRecallAt6": 1,
+    "clinicalMrr": 0.9,
+    "therapyDoseRecall": 1
+  },
+  "retrieval": [
+    { "id": "r01", "category": "clinical", "query": "Demam menggigil dan berkeringat berkala setelah pulang dari Papua", "gold": "SINTETIS Malaria Falsiparum.md" },
+    { "id": "r02", "category": "clinical", "query": "Demam tinggi mendadak hari ketiga, petekie dan uji torniket positif", "gold": "SINTETIS Demam Berdarah Dengue.md" },
+    { "id": "r03", "category": "clinical", "query": "Demam naik bertahap terutama sore hari sejak 8 hari, lidah kotor", "gold": "SINTETIS Demam Tifoid.md" },
+    { "id": "r04", "category": "clinical", "query": "Batuk berdahak, demam dan sesak napas, ronki basah di paru kanan", "gold": "SINTETIS Pneumonia Komunitas.md" },
+    { "id": "r05", "category": "clinical", "query": "Batuk lebih dari dua minggu, keringat malam dan berat badan turun", "gold": "SINTETIS Tuberkulosis Paru.md" },
+    { "id": "r06", "category": "clinical", "query": "Buang air besar cair 5 kali sehari sejak kemarin, mata cekung dan haus", "gold": "SINTETIS Diare Akut.md" },
+    { "id": "r07", "category": "clinical", "query": "Tekanan darah 160/100 mmHg pada dua kunjungan, tengkuk terasa berat", "gold": "SINTETIS Hipertensi Esensial.md" },
+    { "id": "r08", "category": "clinical", "query": "Sering haus dan sering buang air kecil, gula darah puasa 180 mg/dL", "gold": "SINTETIS Diabetes Melitus Tipe 2.md" },
+    { "id": "r09", "category": "clinical", "query": "Sesak napas berulang dengan mengi, memburuk malam hari", "gold": "SINTETIS Asma.md" },
+    { "id": "r10", "category": "clinical", "query": "Nyeri saat berkemih dan sering berkemih sedikit-sedikit, tidak demam", "gold": "SINTETIS Sistitis.md" },
+    { "id": "r11", "category": "clinical", "query": "Nyeri ulu hati, kembung dan mual setelah terlambat makan", "gold": "SINTETIS Gastritis.md" },
+    { "id": "r12", "category": "clinical", "query": "Gatal hebat malam hari di sela jari tangan, teman sekamar juga gatal", "gold": "SINTETIS Skabies.md" },
+    { "id": "r13", "category": "clinical", "query": "Nyeri tenggorokan dan nyeri menelan, demam, faring hiperemis", "gold": "SINTETIS Faringitis Akut.md" },
+    { "id": "r14", "category": "clinical", "query": "Nyeri kepala sebelah berdenyut dengan mual dan silau terhadap cahaya", "gold": "SINTETIS Migrain.md" },
+    {
+      "id": "r15",
+      "category": "clinical",
+      "query": "Demam hari keempat",
+      "case": { "anamnesis": { "freeText": "Mimisan dan gusi berdarah sejak tadi pagi." }, "physicalExam": ["Petekie di lengan"], "results": [{ "name": "Trombosit", "value": "85000" }, { "name": "Hematokrit", "value": "48" }] },
+      "gold": "SINTETIS Demam Berdarah Dengue.md"
+    },
+    { "id": "l01", "category": "lay", "query": "Panas dingin naik turun, baru pulang kerja dari Timika", "gold": "SINTETIS Malaria Falsiparum.md" },
+    { "id": "l02", "category": "lay", "query": "Mencret terus dari kemarin, badan lemas", "gold": "SINTETIS Diare Akut.md" },
+    { "id": "l03", "category": "lay", "query": "Anyang-anyangan dan perih waktu pipis", "gold": "SINTETIS Sistitis.md" },
+    { "id": "l04", "category": "lay", "query": "Maag kambuh, perut perih kalau telat makan", "gold": "SINTETIS Gastritis.md" },
+    { "id": "l05", "category": "lay", "query": "Napas bunyi ngik-ngik kalau kena debu", "gold": "SINTETIS Asma.md" },
+    { "id": "l06", "category": "lay", "query": "Kudisan, gatal sekali kalau malam", "gold": "SINTETIS Skabies.md" },
+    { "id": "l07", "category": "lay", "query": "Batuk lama tidak sembuh-sembuh, sering keringatan malam", "gold": "SINTETIS Tuberkulosis Paru.md" },
+    { "id": "l08", "category": "lay", "query": "Bintik merah di kulit, panas tinggi, gusi berdarah", "gold": "SINTETIS Demam Berdarah Dengue.md" }
+  ],
+  "therapy": [
+    { "id": "t01", "diagnosis": { "icd10": "B50.9", "label": "Malaria falsiparum" }, "dosePassage": "mal-3" },
+    { "id": "t02", "diagnosis": { "icd10": "A91", "label": "Demam berdarah dengue" }, "dosePassage": "dbd-3" },
+    { "id": "t03", "diagnosis": { "icd10": "A01.0", "label": "Demam tifoid" }, "dosePassage": "tif-2" },
+    { "id": "t04", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "dosePassage": "pne-2" },
+    { "id": "t05", "diagnosis": { "icd10": "A09", "label": "Diare akut" }, "dosePassage": "dia-2" },
+    { "id": "t06", "diagnosis": { "icd10": "I10", "label": "Hipertensi esensial" }, "dosePassage": "htn-2" },
+    { "id": "t07", "diagnosis": { "icd10": "E11.9", "label": "Diabetes melitus tipe 2" }, "dosePassage": "dm-2" },
+    { "id": "t08", "diagnosis": { "icd10": "J45.9", "label": "Asma" }, "dosePassage": "asm-2" },
+    { "id": "t09", "diagnosis": { "icd10": "N30.0", "label": "Sistitis" }, "dosePassage": "isk-2" },
+    { "id": "t10", "diagnosis": { "icd10": "K29.7", "label": "Gastritis" }, "dosePassage": "gas-2" },
+    { "id": "t11", "diagnosis": { "icd10": "B86", "label": "Skabies" }, "dosePassage": "ska-2" },
+    { "id": "t12", "diagnosis": { "icd10": "G43.9", "label": "Migrain" }, "dosePassage": "mig-2" }
+  ],
+  "gate": [
+    {
+      "id": "g01", "about": "a dose the passage states is verified",
+      "query": "Batuk berdahak, demam dan sesak napas", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "evidence": ["pne-1", "pne-2"],
+      "regimen": [{ "drug": "Amoksisilin", "dose": "3 x 500 mg", "route": "PO", "duration": "5 hari", "note": "" }],
+      "expected": [{ "status": "verified", "evidence": ["pne-2"] }]
+    },
+    {
+      "id": "g02", "about": "a dose the passage does not state is removed, the drug stays",
+      "query": "Batuk berdahak, demam dan sesak napas", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "evidence": ["pne-1", "pne-2"],
+      "regimen": [{ "drug": "Amoksisilin", "dose": "3 x 1000 mg", "route": "PO", "duration": "5 hari", "note": "" }],
+      "expected": [{ "status": "doseRemoved" }]
+    },
+    {
+      "id": "g03", "about": "a drug no passage names is removed",
+      "query": "Batuk berdahak, demam dan sesak napas", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "evidence": ["pne-1", "pne-2"],
+      "regimen": [{ "drug": "Levofloksasin", "dose": "1 x 750 mg", "route": "PO", "duration": "5 hari", "note": "" }],
+      "expected": [{ "status": "removed" }]
+    },
+    {
+      "id": "g04", "about": "a single strength inside the passage's range is verified",
+      "query": "Tekanan darah 160/100 mmHg, tengkuk berat", "diagnosis": { "icd10": "I10", "label": "Hipertensi esensial" }, "evidence": ["htn-1", "htn-2"],
+      "regimen": [{ "drug": "Amlodipin", "dose": "1 x 5 mg", "route": "PO", "duration": "", "note": "" }],
+      "expected": [{ "status": "verified", "evidence": ["htn-2"] }]
+    },
+    {
+      "id": "g05", "about": "a strength above the passage's range is removed",
+      "query": "Tekanan darah 160/100 mmHg, tengkuk berat", "diagnosis": { "icd10": "I10", "label": "Hipertensi esensial" }, "evidence": ["htn-1", "htn-2"],
+      "regimen": [{ "drug": "Amlodipin", "dose": "1 x 20 mg", "route": "PO", "duration": "", "note": "" }],
+      "expected": [{ "status": "doseRemoved" }]
+    },
+    {
+      "id": "g06", "about": "a laboratory value is never a dose, the drug's own strength is",
+      "query": "Sering haus, sering buang air kecil, gula darah puasa 180 mg/dL", "diagnosis": { "icd10": "E11.9", "label": "Diabetes melitus tipe 2" }, "evidence": ["dm-1", "dm-2"],
+      "regimen": [{ "drug": "Metformin", "dose": "2 x 500 mg", "route": "PO", "duration": "", "note": "sesudah makan" }, { "drug": "Metformin", "dose": "1 x 126 mg", "route": "PO", "duration": "", "note": "" }],
+      "expected": [{ "status": "verified", "evidence": ["dm-2"] }, { "status": "doseRemoved" }]
+    },
+    {
+      "id": "g07", "about": "a tablet count with its weight band is verified and shown with the strength per tablet",
+      "query": "Demam menggigil berkala setelah pulang dari Papua", "diagnosis": { "icd10": "B50.9", "label": "Malaria falsiparum" }, "evidence": ["mal-1", "mal-3"],
+      "regimen": [{ "drug": "Dihidroartemisinin + Piperakuin", "dose": "1x4tablet", "route": "PO", "duration": "3 hari", "note": "dosis untuk berat badan >60kg" }],
+      "expected": [{ "status": "verified", "evidence": ["mal-3"], "shown": { "drug": "Dihidroartemisinin 40 mg + Piperakuin 320 mg", "dose": "4 tablet sekali sehari" } }]
+    },
+    {
+      "id": "g08", "about": "the other weight band's count is not verified",
+      "query": "Demam menggigil berkala setelah pulang dari Papua", "diagnosis": { "icd10": "B50.9", "label": "Malaria falsiparum" }, "evidence": ["mal-1", "mal-3"],
+      "regimen": [{ "drug": "Dihidroartemisinin + Piperakuin", "dose": "1x3tablet", "route": "PO", "duration": "3 hari", "note": "dosis untuk berat badan >60kg" }],
+      "expected": [{ "status": "doseRemoved" }],
+      "knownGap": "Found by this eval on 2026-11-26: the tablet rule reads a weight band only as one number before kg (BB 60 kg), not as a range (BB 41-59 kg), so the 3-tablet clause counts as having no weight band and verifies for any weight. Runs as an expected failure until the gate is fixed."
+    },
+    {
+      "id": "g09", "about": "a dose from another disease's passage does not verify",
+      "query": "Batuk berdahak, demam dan sesak napas", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "evidence": ["pne-1", "pne-2", "gas-2"],
+      "regimen": [{ "drug": "Omeprazol", "dose": "1 x 20 mg", "route": "PO", "duration": "", "note": "" }],
+      "expected": [{ "status": "doseRemoved" }],
+      "retrievalDependent": true
+    },
+    {
+      "id": "g10", "about": "therapy written for another diagnosis is removed whole",
+      "query": "Batuk berdahak, demam dan sesak napas", "diagnosis": { "icd10": "J18.9", "label": "Pneumonia komunitas" }, "forDiagnosis": { "icd10": "A15.0", "label": "Tuberkulosis paru" }, "evidence": ["pne-1", "pne-2"],
+      "regimen": [{ "drug": "Amoksisilin", "dose": "3 x 500 mg", "route": "PO", "duration": "5 hari", "note": "" }],
+      "expected": [{ "status": "removed" }]
+    },
+    {
+      "id": "g11", "about": "a percent concentration is a dose",
+      "query": "Gatal hebat malam hari di sela jari tangan", "diagnosis": { "icd10": "B86", "label": "Skabies" }, "evidence": ["ska-1", "ska-2"],
+      "regimen": [{ "drug": "Permetrin krim", "dose": "5%", "route": "topikal", "duration": "diulang setelah 1 minggu", "note": "" }, { "drug": "Permetrin krim", "dose": "10%", "route": "topikal", "duration": "", "note": "" }],
+      "expected": [{ "status": "verified", "evidence": ["ska-2"] }, { "status": "doseRemoved" }]
+    }
+  ],
+  "privacy": { "trap": "kon-1", "queries": ["Konsultasi pneumonia dan batuk lama, minta nomor dokter jaga", "Batuk lama dan tuberkulosis paru"] },
+  "outOfDomain": ["Harga tiket pesawat Jakarta Surabaya bulan depan", "Resep rendang daging sapi"]
+}
