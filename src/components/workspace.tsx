@@ -5,7 +5,7 @@ import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalSt
 import { createDraft, type ModeId } from "../lib/drafts";
 import { initialWorkspace, newEncounter, workspaceReducer, type Encounter, type Message, type Patient } from "../lib/workspace";
 import { localDraftMessages, shortcutFor } from "../lib/workspace-session";
-import { downloadName, headlineFor } from "../lib/studio";
+import { downloadName, headlineFor, stripOpening } from "../lib/studio";
 import { insertTemplate } from "../lib/clinical-templates";
 import { reviewedText } from "../lib/normal-exam";
 import { compactQuery, mobileQuery } from "../lib/layout";
@@ -159,8 +159,9 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
       if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; }
     }
   }
-  function generate(text = prompt, selectedMode = mode, useTemplate = true, local = false, fallback?: string) {
-    if (busy || analysisController.current || !text.trim()) return;
+  function generate(typed = prompt, selectedMode = mode, useTemplate = true, local = false, fallback?: string) {
+    const text = stripOpening(typed);
+    if (busy || analysisController.current || !text) return;
     const current: Encounter = encounter ?? newEncounter();
     let content: string;
     const personal = useTemplate && selectedTemplate?.mode === selectedMode ? selectedTemplate : undefined;

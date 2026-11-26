@@ -252,6 +252,18 @@ describe("workspace UI smoke tests", () => {
     expect(screen.getByRole("tab", { name: /Analisis kasus/ }).getAttribute("aria-selected")).toBe("true");
   });
 
+  it("a SOAP draft made after a chip does not carry the chip sentence", async () => {
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: /Catatan Klinis \(SOAP\)/ }));
+    const textarea = screen.getByLabelText("Pertanyaan atau catatan klinis") as HTMLTextAreaElement;
+    expect(textarea.value).toContain("Susun catatan SOAP dari kasus berikut:");
+    fireEvent.change(textarea, { target: { value: `${textarea.value}demam 3 hari` } });
+    await act(async () => { fireEvent.keyDown(textarea, { key: "Enter" }); });
+    const pane = screen.getByRole("tabpanel");
+    expect(pane.textContent).toMatch(/demam (sejak )?3 hari/i);
+    expect(pane.textContent).not.toContain("Susun catatan SOAP dari kasus berikut:");
+  });
   it("shows 'tidak dapat dibaca' notice for corrupt saved workspace and preserves raw text in backup", async () => {
     const corruptData = "{ corrupt invalid json content";
     localStorage.setItem(storageKey, corruptData);

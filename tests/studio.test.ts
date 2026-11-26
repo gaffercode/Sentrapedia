@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { intentGroups, emptySection, documentSections, documentTitle, supportingSection, replaceSection, encounterTimeline, contextFacts, composerPlaceholder, downloadName, chipShortlist, chipLabel, headlineFor, withOpening } from "../src/lib/studio";
+import { intentGroups, emptySection, documentSections, documentTitle, supportingSection, replaceSection, encounterTimeline, contextFacts, composerPlaceholder, downloadName, chipShortlist, chipLabel, headlineFor, withOpening, stripOpening } from "../src/lib/studio";
 import { defaultReviewItems } from "../src/lib/workflow";
 import { createDraft, modeIds, modes, type ModeId } from "../src/lib/drafts";
 import { clinicalTemplates, insertTemplate, modeCategories, templateText } from "../src/lib/clinical-templates";
@@ -215,4 +215,13 @@ describe("mode openings and the chip shortlist", () => {
     expect(withOpening("demam 3 hari", "clinic")).toBe(`${opening("clinic")}\ndemam 3 hari`);
   });
   it("the headline cycles through the intent headlines by visit",() => { expect(headlineFor(0)).toBe(intentGroups[0].headline); expect(headlineFor(4)).toBe(intentGroups[0].headline); expect(headlineFor(-1)).toBe(intentGroups[3].headline); });
+  it("strips only a leading opening", () => {
+    const opening = (id: string) => modes.find((m) => m.id === id)!.opening;
+    expect(stripOpening(`${opening("clinic")}\nLaki-laki 45 tahun, demam 3 hari`)).toBe("Laki-laki 45 tahun, demam 3 hari");
+    expect(stripOpening("demam 3 hari. Susun catatan SOAP dari kasus berikut:")).toBe("demam 3 hari. Susun catatan SOAP dari kasus berikut:");
+  });
+  it("opening alone is not a case", () => {
+    const opening = (id: string) => modes.find((m) => m.id === id)!.opening;
+    expect(stripOpening(`${opening("ddx")}\n  `)).toBe("");
+  });
 });
