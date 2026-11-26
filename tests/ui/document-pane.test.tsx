@@ -63,6 +63,17 @@ async function seeded(messages: Message[], encounters: Encounter[] = []) {
 }
 
 describe("the document pane", () => {
+  it("says why Ditinjau is locked and opens Peninjauan from the hint", async () => {
+    await seeded([doc("d1", "# Catatan Klinis\n\n## S\nx")]);
+    expect(screen.getByText("Centang semua item wajib di Peninjauan untuk menandai Ditinjau.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Buka Peninjauan" }));
+    expect(screen.getByText(/Tanda peninjauan pengguna/)).toBeTruthy();
+    for (const box of screen.getAllByRole("checkbox")) fireEvent.click(box);
+    fireEvent.click(screen.getByRole("button", { name: "Peninjauan" }));
+    expect(screen.queryByText(/Tanda peninjauan pengguna/)).toBeNull();
+    expect(screen.queryByText("Centang semua item wajib di Peninjauan untuk menandai Ditinjau.")).toBeNull();
+  });
+
   it("opens the pane with the first document and keeps the chat for question answers only", async () => {
     render(<WorkspaceApp principalId="user_test"/>);
     await act(async () => { await Promise.resolve(); });

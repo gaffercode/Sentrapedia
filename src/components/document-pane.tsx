@@ -68,6 +68,8 @@ export function DocumentPane({ encounter, activeId, onActive, overview, tools, o
           <label className="review-control"><span>Status</span><select aria-label="Status dokumen" value={status} onChange={(event) => dispatch({ type: "message.review", ...ref, status: event.target.value as ReviewStatus })}><option value="draft">Draf</option><option value="reviewed" disabled={!reviewComplete(active.reviewItems)}>Ditinjau</option><option value="final" disabled={status === "draft" || !reviewComplete(active.reviewItems)}>Final</option></select></label>
           <button type="button" className="text-button" aria-pressed={panel === "review"} onClick={() => setPanel(panel === "review" ? null : "review")}>Peninjauan</button>
         </header>
+        {/* Ditinjau stays locked until the required review marks are ticked; say so instead of a silently disabled option (UI audit #6). */}
+        {status === "draft" && !reviewComplete(active.reviewItems) && panel !== "review" && <p className="panel-caption review-hint">Centang semua item wajib di Peninjauan untuk menandai Ditinjau. <button type="button" className="text-button" onClick={() => setPanel("review")}>Buka Peninjauan</button></p>}
         {panel === "history" && <HistoryPanel message={active} encounterId={encounter.id} dispatch={dispatch}/>}
         {/* "Lihat bagian" goes to that section's heading in the body below. */}
         {panel === "review" && <ReviewPanel message={{ ...active, content: diagnosisContent(active) }} encounterId={encounter.id} dispatch={dispatch} onNavigate={(target) => { setPanel(null); requestAnimationFrame(() => [...document.querySelectorAll<HTMLElement>(".pane-body h3")].find((heading) => heading.textContent === target)?.scrollIntoView({ block: "start" })); }}/>}
