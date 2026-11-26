@@ -70,7 +70,11 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const resetCaseFields = useCallback(() => setCaseFields(emptyCaseFields()), []);
   const [analysisError, setAnalysisError] = useState("");
   // A case whose age or sex differs from the open encounter waits here until the doctor picks where it goes (P0 #3).
-  const [held, setHeld] = useState<{ text: string; mode: ModeId; useTemplate: boolean; local: boolean; fallback?: string } | null>(null);
+  // It belongs to the encounter it was held in; opening another encounter voids it (the text stays in the composer).
+  const [held, setHeld] = useState<{ encounterId: string; text: string; mode: ModeId; useTemplate: boolean; local: boolean; fallback?: string } | null>(null);
+  const heldHere = held && held.encounterId === state.activeEncounterId ? held : null;
+  // Whether the analysis that just failed was meant for a new encounter, so its local SOAP fallback goes there too.
+  const failedIntoNew = useRef(false);
   // The question being analysed: shown at once as the user's message, saved only with its answer.
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
@@ -137,7 +141,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   function fallbackDraft() {
     if (!prompt.trim() || busy) return;
     const reason = analysisError; setAnalysisError("");
-    generate(prompt, "clinic", false, true, reason, { confirmed: true });
+    generate(prompt, "clinic", false, true, reason, { confirmed: true, fresh: failedIntoNew.current });
     // Like an answered analysis, the next case starts with an empty strip.
     resetCaseFields();
     notify("Draf SOAP lokal disusun tanpa analisis AADI. Lengkapi dan verifikasi oleh klinisi.");
@@ -156,7 +160,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
       resetCaseFields();
       dispatch({ type: "encounter.select", id: current.id });
     } catch (error) {
-      if (!controller.signal.aborted) { setAnalysisError(error instanceof Error ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia."); setPrompt(text); }
+      if (!controller.signal.aborted) { failedIntoNew.current = isNew; setAnalysisError(error instanceof Error ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia."); setPrompt(text); }
     } finally {
       if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; }
     }
@@ -166,7 +170,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     const text = stripOpening(typed);
     if (busy || analysisController.current || !text) return;
     const target = fresh ? undefined : encounter, targetPatient = fresh ? undefined : patient;
-    if (!confirmed && target?.messages.length && caseMismatch(readCaseFields(text), knownCaseFields(target, targetPatient))) { setHeld({ text, mode: selectedMode, useTemplate, local, fallback }); return; }
+    if (!confirmed && target?.messages.length && caseMismatch(readCaseFields(text), knownCaseFields(target, targetPatient))) { setHeld({ encounterId: target.id, text, mode: selectedMode, useTemplate, local, fallback }); setPrompt(text); return; }
     setHeld(null);
     const current: Encounter = target ?? newEncounter();
     let content: string;
@@ -206,7 +210,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   };
   const paneFor = (onClose: () => void) => encounter && <DocumentPane encounter={encounter} activeId={pane.activeId} onActive={(activeId) => setPane({ activeId })} overview={<EncounterOverview state={state} encounter={encounter} patient={patient} {...overviewActions}/>} tools={paneTools} onClose={onClose} dispatch={dispatch} onToast={notify} drafts={drafts} onDraft={setDraft}/>;
   const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft,
-    mismatch: held && { onNew: () => generate(held.text, held.mode, held.useTemplate, held.local, held.fallback, { confirmed: true, fresh: true }), onKeep: () => generate(held.text, held.mode, held.useTemplate, held.local, held.fallback, { confirmed: true }) } };
+    mismatch: heldHere && { onNew: () => generate(heldHere.text, heldHere.mode, heldHere.useTemplate, heldHere.local, heldHere.fallback, { confirmed: true, fresh: true }), onKeep: () => generate(heldHere.text, heldHere.mode, heldHere.useTemplate, heldHere.local, heldHere.fallback, { confirmed: true }) } };
 
   if (restoring) return <main className="system-loading" aria-busy="true"><PixelLoader label="Sedang membuka workspace…"/><p>Membuka workspace…</p></main>;
   if (locked) return <WorkspaceUnlock onUnlock={unlock} onForget={forget}/>;

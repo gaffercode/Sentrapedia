@@ -281,6 +281,62 @@ describe("workspace UI smoke tests", () => {
     expect(user).toEqual(["Perempuan 30 tahun, nyeri perut"]);
     expect(screen.getAllByRole("button", { name: /Opsi untuk/ })).toHaveLength(2);
   });
+  const twoPatients = () => {
+    const at = "2026-11-26T10:00:00.000Z";
+    const msg = (id: string, content: string) => [{ id: `${id}-u`, role: "user" as const, content, mode: "clinic" as const, createdAt: at }, { id: `${id}-a`, role: "assistant" as const, content: "# Catatan Klinis\n\n## S\nx", mode: "clinic" as const, createdAt: at }];
+    localStorage.setItem(storageKey, JSON.stringify({ ...initialWorkspace,
+      patients: [{ id: "pA", name: "Budi", age: "45", sex: "Male", notes: "" }, { id: "pC", name: "Citra", age: "70", sex: "Female", notes: "" }],
+      encounters: [{ id: "eA", patientId: "pA", title: "Kasus Budi", createdAt: at, context: "", messages: msg("a", "Laki-laki 45 tahun, demam") }, { id: "eC", patientId: "pC", title: "Kasus Citra", createdAt: at, context: "", messages: msg("c", "Perempuan 70 tahun, sesak") }],
+      activeEncounterId: "eA" }));
+  };
+  const saved = () => JSON.parse(localStorage.getItem(storageKey) ?? "{}") as { encounters: Encounter[] };
+
+  it("Kasus baru stays a new encounter when AADI fails and the local SOAP fallback is used", async () => {
+    twoPatients();
+    vi.mocked(global.fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes("/api/aadi") && init?.method === "POST") return new Response(JSON.stringify({ error: { code: "UPSTREAM", message: "Layanan analisis gagal." } }), { status: 502, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ configured: true, ready: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    const box = () => screen.getAllByLabelText("Pertanyaan atau catatan klinis")[0] as HTMLTextAreaElement;
+    fireEvent.change(box(), { target: { value: "Perempuan 30 tahun, nyeri perut kanan bawah" } });
+    await act(async () => { fireEvent.keyDown(box(), { key: "Enter" }); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Kasus baru" })); });
+    for (let i = 0; i < 10; i++) await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Susun draf SOAP lokal" })); });
+    const budi = saved().encounters.find((e) => e.id === "eA")!;
+    expect(budi.messages.map((m) => m.content).filter((c) => c.includes("Perempuan 30"))).toEqual([]);
+    expect(saved().encounters).toHaveLength(3);
+  });
+
+  it("a held case is dropped from view when another encounter is opened", async () => {
+    twoPatients();
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.click(screen.getByRole("button", { name: /Catatan Klinis \(SOAP\)/ }));
+    const box = () => screen.getAllByLabelText("Pertanyaan atau catatan klinis")[0] as HTMLTextAreaElement;
+    fireEvent.change(box(), { target: { value: "Perempuan 30 tahun, nyeri perut" } });
+    await act(async () => { fireEvent.keyDown(box(), { key: "Enter" }); });
+    expect(screen.getByRole("button", { name: "Tetap di encounter ini" })).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByText("Kasus Citra", { selector: "span" })); });
+    expect(screen.queryByRole("button", { name: "Tetap di encounter ini" })).toBeNull();
+    expect(saved().encounters.find((e) => e.id === "eC")!.messages).toHaveLength(2);
+  });
+
+  it("a held scribe transcript stays in the composer instead of vanishing", async () => {
+    twoPatients();
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: /Mulai Scribe/ })[0]); });
+    fireEvent.change(screen.getByPlaceholderText(/Tempel atau ketik percakapan/), { target: { value: "Pasien perempuan 30 tahun, nyeri perut" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Buat Scribe Note/ })); });
+    expect(screen.getByRole("button", { name: "Tetap di encounter ini" })).toBeTruthy();
+    const box = screen.getAllByLabelText("Pertanyaan atau catatan klinis")[0] as HTMLTextAreaElement;
+    expect(box.value).toBe("Pasien perempuan 30 tahun, nyeri perut");
+  });
+
   it("shows 'tidak dapat dibaca' notice for corrupt saved workspace and preserves raw text in backup", async () => {
     const corruptData = "{ corrupt invalid json content";
     localStorage.setItem(storageKey, corruptData);
