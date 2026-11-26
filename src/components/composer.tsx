@@ -61,8 +61,8 @@ export function Composer(props: Props) {
   return <div className="composer-area"><form className={`composer ${props.busy ? "is-busy" : ""}`} aria-busy={props.busy} onSubmit={(event) => { event.preventDefault(); if (slashOpen) { if (options[slashIndex]) choose(options[slashIndex].key); } else props.onSubmit(); }}>
     <textarea ref={box} aria-label="Pertanyaan atau catatan klinis" placeholder={composerPlaceholder(props.mode)} value={props.prompt} onChange={(e) => { props.onPrompt(e.target.value); setSlashClosed(false); setSlashIndex(0); }} aria-controls={slashOpen ? pickerId : undefined} aria-activedescendant={slashOpen && options[slashIndex] ? `${pickerId}-${slashIndex}` : undefined} rows={2} maxLength={30000} onKeyDown={onKeyDown}/>
     <div className="composer-toolbar"><div className="composer-tools-left">
-      <button type="button" className="button" disabled={props.busy} onClick={props.onScribe}><AudioLines size={15}/>Mulai Scribe</button>
-      <button type="button" className={`button ${props.context ? "has-context" : ""}`} onClick={props.onContext}><Paperclip size={15}/>{props.context ? "Ubah Konteks" : "Tambah Konteks"}</button>
+      <button type="button" className="button" title="Mulai Scribe" disabled={props.busy} onClick={props.onScribe}><AudioLines size={15}/><span className="button-label">Mulai Scribe</span></button>
+      <button type="button" className={`button ${props.context ? "has-context" : ""}`} title={props.context ? "Ubah Konteks" : "Tambah Konteks"} onClick={props.onContext}><Paperclip size={15}/><span className="button-label">{props.context ? "Ubah Konteks" : "Tambah Konteks"}</span></button>
       <span className="context-status" role="status">{dictation.recording ? <span key="listening" className="listening">Mendengarkan…</span> : <span key="summary">{props.patientName ?? "Tanpa pasien"} · {props.context ? "konteks terisi" : "belum ada konteks"}</span>}</span>
     </div><div className="composer-tools-right">
       {/* Standar/Extended shapes local templates only; an AADI analysis ignores it (UI audit #9). */}
