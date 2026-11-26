@@ -435,11 +435,11 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .submenu-section[data-open="true"] .submenu-body { grid-template-rows: 1fr; opacity: 1; }
 .submenu-clip { min-height: 0; overflow: hidden; }
 .submenu-items { position: relative; padding: 0 0 6px 14px; }
-.submenu-item { height: 34px; display: flex; align-items: center; position: relative; gap: 2px; opacity: 0; transform: translateY(-4px); transition: opacity 280ms ease-out, transform 280ms cubic-bezier(.23, 1, .32, 1); }
+.submenu-item { height: var(--submenu-row); display: flex; align-items: center; position: relative; gap: 2px; opacity: 0; transform: translateY(-4px); transition: opacity 280ms ease-out, transform 280ms cubic-bezier(.23, 1, .32, 1); }
 .submenu-section[data-open="true"] .submenu-item { opacity: 1; transform: translateY(0); transition-delay: calc(40ms + min(var(--item-order), 8) * 35ms); }
 .submenu-item::before { content: ""; position: absolute; left: -10px; top: 0; height: 100%; border-left: 1px solid var(--color-border-subtle); }
-.submenu-item:last-child::before { height: 17px; }
-.submenu-item::after { content: ""; position: absolute; left: -10px; top: 9px; width: 9px; height: 8px; border-left: 1px solid var(--color-border-subtle); border-bottom: 1px solid var(--color-border-subtle); border-bottom-left-radius: var(--radius); pointer-events: none; }
+.submenu-item:last-child::before { height: calc(var(--submenu-row) / 2); }
+.submenu-item::after { content: ""; position: absolute; left: -10px; top: calc(var(--submenu-row) / 2 - 8px); width: 9px; height: 8px; border-left: 1px solid var(--color-border-subtle); border-bottom: 1px solid var(--color-border-subtle); border-bottom-left-radius: var(--radius); pointer-events: none; }
 .submenu-item > button:first-child { min-width: 0; flex: 1; height: 32px; display: flex; align-items: center; gap: 7px; padding: 6px; border-radius: var(--radius); text-align: left; font-size: var(--text-sm); }
 .submenu-item > button:first-child > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .submenu-item:hover > button:first-child, .submenu-item[data-active="true"] > button:first-child { background: var(--workspace-accent-soft); color: var(--workspace-accent-ink); }
@@ -813,4 +813,37 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
   html[data-printing] [data-print-target] { position: absolute; inset: 0 auto auto 0; width: 100%; max-height: none; overflow: visible; color: var(--color-text-primary); background: none; }
   html[data-printing] [data-print-target] .message-actions, html[data-printing] [data-print-target] .pipeline-trace { display: none; }
   html[data-printing] [data-print-target]::before { content: attr(data-print-status); display: block; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+}
+
+/* Design audit fixes (2026-11-27; audit findings H1, H2, H3, S1, D1, D2). */
+/* One encounter-row height drives the row, its tree line and the active-branch indicator (sidebar-submenu.tsx). */
+:root { --submenu-row: 34px; }
+/* The composer and feedback fields draw no ring of their own, so the field box carries the same 2px ring as buttons. */
+.composer:focus-within, .feedback:focus-within { outline: 2px solid var(--workspace-focus); outline-offset: 2px; }
+a:focus-visible, select:focus-visible { outline: 2px solid var(--workspace-focus); outline-offset: 2px; }
+/* Analysis error: the message, then its recovery actions as real buttons on their own row. */
+.form-warning-message { margin: 0; }
+.form-warning-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.form-warning-actions .button { min-height: 32px; padding: 4px 11px; background: var(--workspace-white); color: var(--color-text-primary); font-size: var(--text-sm); }
+/* On a wide screen the home composer sits near the top of the canvas, so the / picker opens below it. On a phone the
+   composer sits low, so the picker keeps opening upward, as the chat composer's always does. */
+@media (min-width: 761px) { .home-content .slash-picker { top: calc(100% + 4px); bottom: auto; } }
+@media (max-width: 760px) {
+  :root { --submenu-row: var(--target-min); }
+  /* Every mode chip stays visible on a phone: the row wraps instead of scrolling behind a fade. */
+  .chip-row { flex-wrap: wrap; overflow-x: visible; mask-image: none; }
+  .chip-row::after { content: none; }
+  .main-nav > button, .main-nav > a { height: auto; min-height: var(--target-min); }
+  .small-icon { min-width: var(--target-min); min-height: var(--target-min); }
+  .submenu-heading > button:first-child { min-height: var(--target-min); }
+  .sidebar .icon-button { min-width: var(--target-min); min-height: var(--target-min); }
+  .empty-text { min-height: var(--target-min); align-items: center; }
+  .feedback { height: auto; min-height: var(--target-min); }
+  .feedback button { min-width: var(--target-min); }
+  .submenu-item > button:first-child { height: auto; min-height: var(--target-min); }
+}
+@media (max-width: 600px) {
+  /* Stacked in DOM order, so the focus order matches what is seen; the destructive action stands apart at the top. */
+  .dialog-footer { flex-direction: column; align-items: stretch; }
+  .dialog-footer .push-left { margin: 0 0 8px; }
 }
