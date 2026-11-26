@@ -36,12 +36,11 @@ export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument 
   return <article ref={article} className="assistant-message" data-reveal={fresh || undefined}>
     {/* A document lives in the pane; the chat keeps one line and a card that opens it. */}
     {paneDocument(message) ? <>
-      {aadi ? <div className="doctor-summary">{doctorSummary(content).map((line, index) => { const at = line.indexOf(":"); return <p key={index}>{at > 0 ? <><strong>{line.slice(0, at + 1)}</strong>{line.slice(at + 1)}</> : line}</p>; })}</div> : <p className="document-line">{`Draf ${modeName} disusun.`}</p>}
+      {aadi ? <div className="doctor-summary">{doctorSummary(content).map((line, index) => { const at = line.indexOf(":"); return <p key={index}>{at > 0 ? <><strong>{line.slice(0, at + 1)}</strong>{line.slice(at + 1)}</> : line}</p>; })}</div> : <p className="document-line">{`Template ${modeName} disusun dari teks Anda, tanpa analisis AI.`}</p>}
       <button type="button" className="document-card" onClick={() => onOpenDocument(message.id)}><span><strong>{aadi ? "Analisis kasus" : documentTitle(content).replace(/^# /, "") || modeName}</strong><small>{workspaceDate(message.createdAt)}</small></span></button>
       {trace.length > 0 && <details className="pipeline-trace"><summary>Jejak analisis</summary><ol>{trace.map((step, index) => <li key={index}>{step.stage} · {step.ms} ms{step.ok ? "" : " · gagal"}</li>)}</ol></details>}
     </> : <>
       <DocumentContent content={content} onEdit={onEdit}/>
-      {message.mode === "question" && <div className="evidence-handoff"><strong>Siap untuk peninjauan Evidence</strong><span>Hubungkan AI Clinical dan sumber terverifikasi untuk menjawab ringkasan ini. Draf dapat diedit dan diekspor.</span></div>}
       <footer className="message-actions">
         <button type="button" className="icon-button" aria-label="Salin" title="Salin" onClick={copy}><Copy size={15}/></button>
         <button type="button" className="icon-button" aria-label="Cetak" title="Cetak" onClick={() => printDocument(article.current, message.reviewStatus)}><Printer size={15}/></button>

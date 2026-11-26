@@ -6,6 +6,7 @@ import { THEORACLE_GROUNDING_CAPABILITY, TheOracleGroundingError, validTheOracle
 import type { CaseState } from "./types";
 import type { AnalysisQueue, QueueRefusal } from "./queue";
 import type { AnalysisLimits } from "./limits";
+import { isAnalysisStage, type StageEvent } from "./stage-stream";
 
 type Options = { queue?: AnalysisQueue; limits?: AnalysisLimits; fetchFn?: typeof fetch; baseUrl?: string; token?: string; timeoutMs?: number; model?: string; maxCostUsd?: number; retrieveGrounding?: (caseData: CaseState) => Promise<TheOracleGroundingBundle>; retrieveTherapyGrounding?: (caseData: CaseState, diagnosis: { icd10: string; label: string }) => Promise<TheOracleGroundingBundle>; targetedTherapy?: boolean; retrievalTimeoutMs?: number; publicOrigin?: string; maxConcurrent?: number; log?: (entry: StageLog) => void; catalogue?: () => readonly Disease[] };
 export interface StageLog { traceId: string; stage: string; ms: number; ok: boolean; code?: string }
@@ -74,7 +75,8 @@ export function createAadiGateway(options: Options = {}) {
       return reply({ reachable: status.reachable, modelReady: status.modelReady, groundingReady: status.groundingReady, configured: !!base && !!token, model: selectedModel ?? null, maxCostUsd: selectedModel ? maxCostUsd : null });
     },
     // principal is the verified session's id (src/app/api/aadi/route.ts), never a value from the request body.
-    async step(request: Request, principal?: string): Promise<Response> {
+    // onStage hears each pipeline stage start and end (stage-stream.ts); the reply is the same with or without it.
+    async step(request: Request, principal?: string, onStage?: (event: StageEvent) => void): Promise<Response> {
       const origin = request.headers.get("origin");
       if (publicOrigin && origin === publicOrigin) {
         // The browser's Origin is the guard here; Host is the public name, or loopback when the tunnel rewrites it.
@@ -98,7 +100,7 @@ export function createAadiGateway(options: Options = {}) {
       if (!payload || typeof payload !== "object" || !("case" in payload) || Object.keys(payload).some(k => k !== "case") || !validCase(payload.case)) return failure("INPUT", "Lengkapi kasus terstruktur.", 400);
       const caseData = payload.case;
       if (caseContainsIdentity(caseData)) return failure("PII_DETECTED", "Hapus pola identitas pasien dari keluhan, catatan, dan konteks sebelum mengirim. Gunakan kode kasus tanpa nama, nomor identitas, kontak, atau alamat.", 400);
-      if (!base || !token) return failure("NOT_CONFIGURED", "Token koneksi layanan analisis belum dikonfigurasi pada server workspace.", 503);
+      if (!base || !token) return failure("NOT_CONFIGURED", "Layanan analisis belum tersambung. Pertanyaan Anda tetap tersimpan; coba lagi nanti atau hubungi pengelola workspace.", 503);
       // With a queue the caller waits for a slot and can read their place (GET /api/aadi/queue); without one the
       // gateway keeps its one-at-a-time refusal. The quota and the budget are charged only once a slot is held, so
       // a place given up in line costs the person nothing. The request timer below starts after both.
@@ -127,9 +129,11 @@ export function createAadiGateway(options: Options = {}) {
       const traceId = crypto.randomUUID(); const createdAt = new Date().toISOString();
       const stages: StageLog[] = [];
       const log = options.log ?? (entry => console.info(JSON.stringify({ event: "aadi.stage", ...entry })));
-      const record = (stage: string, started: number, ok: boolean, code?: string) => { const entry = { traceId, stage, ms: Math.round(performance.now() - started), ok, ...(code ? { code } : {}) }; stages.push(entry); log(entry); };
+      const notify = (stage: string, state: StageEvent["state"]) => { if (onStage && isAnalysisStage(stage)) try { onStage({ stage, state }); } catch { /* progress never fails the analysis */ } };
+      const record = (stage: string, started: number, ok: boolean, code?: string) => { const entry = { traceId, stage, ms: Math.round(performance.now() - started), ok, ...(code ? { code } : {}) }; stages.push(entry); log(entry); notify(stage, ok ? "done" : "failed"); };
       const timed = async <T>(stage: string, run: () => Promise<T>, limitMs?: number): Promise<T> => {
         const started = performance.now();
+        notify(stage, "running");
         let timer: ReturnType<typeof setTimeout> | undefined;
         try {
           const value = await (limitMs ? Promise.race([run(), new Promise<never>((_, fail) => { timer = setTimeout(() => fail(stage.startsWith("retrieve") ? new TheOracleGroundingError("THEORACLE_UNAVAILABLE", "Pencarian Oracle melewati batas waktu.") : new ServiceFailure("TIMEOUT")), limitMs); })]) : run());

@@ -1,12 +1,16 @@
 // Embeds theoracle/index/chunks.jsonl with the pinned local model and writes vectors.f32 + manifest.json.
-// Usage: node scripts/build-theoracle-index.mjs [--device cpu|dml] [--append]. Resumable after interruption.
+// Usage: node scripts/build-theoracle-index.mjs [--device cpu|dml] [--append] [--index-dir <folder>]. Resumable after interruption.
 // --append keeps the vectors of the existing rows and embeds only rows added to chunks.jsonl since the last build.
+// --index-dir builds another folder's chunks.jsonl with the same model and code (the public synthetic eval, tests/theoracle-eval.test.ts).
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { resolve, sep } from "node:path";
 import { AutoModel, AutoTokenizer, env } from "@huggingface/transformers";
-import { fileSha256, indexDir, modelDir, profile } from "./theoracle-model.mjs";
+import { fileSha256, indexDir as defaultIndexDir, modelDir, profile } from "./theoracle-model.mjs";
 
-const device = process.argv.includes("--device") ? process.argv[process.argv.indexOf("--device") + 1] : "cpu";
+const option = name => process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined;
+const device = option("--device") ?? "cpu";
+const indexDir = option("--index-dir") ? resolve(option("--index-dir")) + sep : defaultIndexDir;
 env.allowRemoteModels = false; env.localModelPath = modelDir;
 for (const [name, expected] of Object.entries(profile.files)) {
   if (await fileSha256(`${modelDir}${profile.id}/${name}`) !== expected.sha256) throw new Error(`Model file ${name} does not match its pinned hash. Run node scripts/install-theoracle-model.mjs.`);

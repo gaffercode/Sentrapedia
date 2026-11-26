@@ -150,4 +150,54 @@ Terapi Farmakologi: "Untuk <diagnosis> (<kode>)", satu obat per baris dengan dos
 
 ## Workspace berbentuk Glass (2026-11-04)
 
-Menggantikan Clinical Cockpit, rail "Alur kasus", jawaban diketik, dan dialog Pengaturan Agent di atas. Sidebar mengikuti urutan Glass; kanvas terbagi antara chat dan panel dokumen di atas 1200 px (sheet "Dokumen encounter" di bawahnya). Chat berisi prosa, ringkasan dokter, dan kartu dokumen; panel berisi tab Ringkasan encounter dan satu tab per dokumen. Analisis AADI dirender dari hasil mesin yang tersimpan dalam bentuk diferensial Glass (`src/lib/aadi/analysis-view.ts`, `src/components/analysis-document.tsx`): Pembahasan kasus, Kemungkinan utama, Alternatif, Jangan terlewat, Langkah diagnostik berikutnya, Rencana tata laksana (lewat gerbang bukti; dosis yang tidak terverifikasi diberi tanda "Cek dosis obat"), Edukasi dan tindak lanjut, Kutipan pedoman (kartu bernomor, tautan `[n]`). Kartu berpikir hanya melaporkan yang terjadi (permintaan diterima, detik menunggu); jejak pipeline disimpan bersama jawaban. Komposer memakai satu baris chip (8 mode) dan `/` sebagai pemilih penuh. Pengaturan Agent menjadi halaman `/agent` dengan tab Preferensi, Mode dan templat, Pengetahuan; `settings.environment` tampil sebagai pil beranda, `settings.modeInstructions` hanya dipakai draf lokal. Token radius: `--radius-control` 8 px, `--radius-structure` 12 px. Bukti: `docs/verification/glass-redesign-2026-11-04/` (1440, 1024, 375 px; axe 0 pelanggaran).
+Menggantikan Clinical Cockpit, rail "Alur kasus", jawaban diketik, dan dialog Pengaturan Agent di atas. Sidebar mengikuti urutan Glass; kanvas terbagi antara chat dan panel dokumen di atas 1200 px (sheet "Dokumen encounter" di bawahnya). Chat berisi prosa, ringkasan dokter, dan kartu dokumen; panel berisi tab Ringkasan encounter dan satu tab per dokumen. Analisis AADI dirender dari hasil mesin yang tersimpan dalam bentuk diferensial Glass (`src/lib/aadi/analysis-view.ts`, `src/components/analysis-document.tsx`): Pembahasan kasus, Kemungkinan utama, Alternatif, Jangan terlewat, Langkah diagnostik berikutnya, Rencana tata laksana (lewat gerbang bukti; dosis yang tidak terverifikasi diberi tanda "Cek dosis obat"), Edukasi dan tindak lanjut, Kutipan pedoman (kartu bernomor, tautan `[n]`). Kartu berpikir hanya melaporkan yang terjadi (permintaan diterima, tahap gateway yang benar-benar dilaporkan sejak 2026-11-26, detik menunggu); jejak pipeline disimpan bersama jawaban. Komposer memakai satu baris chip (8 mode) dan `/` sebagai pemilih penuh. Pengaturan Agent menjadi halaman `/agent` dengan tab Preferensi, Mode dan templat, Pengetahuan; `settings.environment` tampil sebagai pil beranda, `settings.modeInstructions` hanya dipakai draf lokal. Token radius: `--radius-control` 8 px, `--radius-structure` 12 px. Bukti: `docs/verification/glass-redesign-2026-11-04/` (1440, 1024, 375 px; axe 0 pelanggaran).
+
+## Alur kasus yang lebih aman (2026-11-26)
+
+Empat perbaikan P0 dari audit alur UI (SVI-CEO-RPT-001), status REVIEW:
+
+- Workspace baru, atau workspace yang tidak dapat dibaca, mulai kosong: tanpa Pasien atau Encounter contoh (`emptyWorkspace`, `src/lib/workspace.ts`). Catatan Pasien contoh yang masih tersimpan di workspace lama tidak pernah dikirim ke AADI sebagai riwayat kasus (`isSeedPatientNote`).
+- Chip mode tetap menulis kalimat pembukanya di composer, tetapi kalimat itu dibuang saat kirim (`stripOpening`, `src/lib/studio.ts`), sehingga tidak menjadi Keluhan Utama atau keluhan utama AADI.
+- Bila Encounter yang terbuka sudah berisi kasus dan usia/jenis kelamin yang diketik berbeda (Pasien tersimpan dulu, lalu kasus pertama), kasus belum dikirim: composer menawarkan "Kasus baru" atau "Tetap di encounter ini" (`knownCaseFields`, `caseMismatch`, `src/lib/aadi/composer.ts`). Nilai yang tidak diketahui tidak pernah memblokir.
+- Chip dan pemilih `/` menandai jenis mode: AI untuk lima mode yang dianalisis AADI, Template untuk tiga belas mode yang hanya menyusun ulang teks (`modeKind`). Draf lokal menulis "Template … disusun dari teks Anda, tanpa analisis AI."
+
+Verifikasi: seluruh vitest 841 lulus, 23 dilewati (data privat); lint dan typecheck bersih; pemeriksaan browser `next dev` mode auth lokal pada 1440 dan 390 px. Jawaban AADI live dan layar Clerk tidak diuji di lingkungan cloud.
+
+## Alur workspace lebih mulus (2026-11-26)
+
+Lanjutan audit (#5, #6, #9-#12), status REVIEW:
+
+- Membuka dialog (Tambah Konteks, Pasien, Templat, Pusat perintah, dan lainnya) tidak lagi membatalkan analisis yang sedang berjalan. Scribe tetap membatalkan karena memulai draf baru.
+- Selama item wajib Peninjauan belum dicentang, di bawah kepala dokumen tampil "Centang semua item wajib di Peninjauan untuk menandai Ditinjau." dengan tombol "Buka Peninjauan".
+- Di composer, kirim menjadi satu-satunya aksi utama (Mulai Scribe sekunder), dan Standar/Extended hanya tampil pada mode Template.
+- Pada 1201-1460 px dengan panel dokumen terbuka, Scribe dan Konteks tampil sebagai ikon (nama aksesibel dan tooltip tetap), sehingga toolbar composer satu baris. Baris chip memudar di tepi kanan sebagai tanda bisa digulir.
+- Catatan usang "Hubungkan AI Clinical" pada jawaban pertanyaan dihapus.
+
+Verifikasi: vitest 849 lulus, 23 dilewati (data privat); lint dan typecheck bersih; tinggi toolbar diukur di browser pada 1440, 1210, 1024 (satu baris) dan 390 px (dua baris, sesuai desain HP).
+
+## Design audit fixes (2026-11-27)
+
+From the 2026-11-26 design audit (recommendations 1-4; token migration waits for the brand decision). All in `src/app/globals.css` unless named.
+
+- Mode chips wrap at 760px and below, so every chip is visible on a phone; wider screens keep the scrolling row with its fade.
+- An unconfigured analysis service reads "Layanan analisis belum tersambung. Pertanyaan Anda tetap tersimpan; …" (`src/lib/aadi/gateway.ts`), and the composer shows the message and its recovery actions ("Coba lagi", "Susun draf SOAP lokal") as separate elements, the actions as buttons (`src/components/composer.tsx`).
+- The composer and feedback fields, links and selects carry the 2px `--workspace-focus` ring.
+- At 760px and below sidebar rows, encounter rows, icon buttons and the feedback field reach `--target-min` (44px). `--submenu-row` sets the encounter row height, its tree line and the active-branch indicator together (`src/components/sidebar-submenu.tsx`).
+- Above 760px the home composer's `/` picker opens below it; on a phone and in chat it opens upward.
+- At 600px and below dialog actions stack full width in DOM order, so focus order matches what is seen.
+
+Tests: `tests/ui/design-audit-fixes.test.tsx`, plus the NOT_CONFIGURED wording in `tests/aadi-guardrails.test.ts`. Browser check at 390/768/1440 px with Playwright and axe-core (0 violations on the audited screens).
+
+## Design standard (Gaffer, 2026-11-26)
+
+The current "Glass" look is the approved design standard for the workspace: Geist for text and Plus Jakarta Sans for titles, the Tosca accent (`--color-action-primary` #40e0d0, `--workspace-accent-ink` #086b61), `--radius-control` 8px and `--radius-structure` 12px, and the overrides in `src/app/globals.css` `:root`. There is no planned migration to the Swiss foundation look (Archivo, 0/2px radii, ink primary). The admission pages (`src/app/auth.css`) keep the marketing site's Inter voice on purpose.
+
+`src/app/sentra-tokens.css` (Sentraverse UI Foundation Tokens v1.0) is still imported and supplies the semantic variables that `globals.css` overrides. Its values are not the standard where `globals.css` overrides them. These groups are defined there but unused by the workspace as of 2026-11-26:
+
+- Spacing `--space-1…9`: components use literal px values.
+- Motion `--motion-duration-*`, `--motion-easing-standard`: transitions use literal durations.
+- Breakpoints 640/1024/1440 (comment only): media queries use their own widths, mainly 600, 760, 900 and 1200px.
+- Type `--font-family-*`, `--font-size-*`, `--letter-spacing-*`: the workspace uses `--font-body`, `--font-title` and its own `--text-*` scale.
+- Dark theme `[data-theme="dark"]`: nothing sets `data-theme`, so the workspace is light only.
+
+Used from it: `--target-min` (44px touch targets), and the semantic colour names that `globals.css` re-points. Code changes keep following `globals.css`; whether the unused groups are adopted or removed is a separate decision.

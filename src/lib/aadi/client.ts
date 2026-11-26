@@ -4,6 +4,7 @@ import { validTheOracleGrounding } from "../theoracle-grounding-types";
 import { applyTherapyGate, gateEvidence, validGate } from "../theoracle-evidence-gate";
 import { addCatalogueRecords, validDisease } from "../theoracle";
 import { ensureCatalogueIndex } from "../theoracle-client";
+import { readAnalysisStream, stageStreamType, type StageEvent } from "./stage-stream";
 
 /** A failed analysis request; `code` is the gateway's error code when the server sent one. */
 export class AadiRequestError extends Error {
@@ -15,12 +16,14 @@ export class AadiRequestError extends Error {
 // How often the browser asks for its place in line while the analysis request is waiting.
 export const QUEUE_POLL_MS = 2000;
 
-/** onQueuePosition receives the caller's place while the request waits: 1 is first in line, 0 means it is running. */
-export async function requestAadiAnalysis(caseData: CaseState, options: { signal?: AbortSignal; fetchFn?: typeof fetch; onQueuePosition?: (position: number) => void } = {}): Promise<AadiAnalysis> {
+/** onQueuePosition receives the caller's place while the request waits: 1 is first in line, 0 means it is running.
+ *  onStage receives each pipeline stage as the gateway reports it (stage-stream.ts); a gateway that answers with plain
+ *  JSON simply reports none. Either way the answer is validated and gated the same way below. */
+export async function requestAadiAnalysis(caseData: CaseState, options: { signal?: AbortSignal; fetchFn?: typeof fetch; onQueuePosition?: (position: number) => void; onStage?: (event: StageEvent) => void } = {}): Promise<AadiAnalysis> {
   if (!validCase(caseData)) throw new Error("Keluhan atau konteks tidak valid atau terlalu panjang.");
   options.signal?.throwIfAborted();
   const snapshot = structuredClone(caseData);
-  let response: Response;
+  let status: number;
   let data: unknown;
   const fetchFn = options.fetchFn ?? fetch;
   // The place is informational: a failed or late reading is dropped and never fails the analysis.
@@ -31,16 +34,20 @@ export async function requestAadiAnalysis(caseData: CaseState, options: { signal
       if (waiting && body && typeof body === "object" && "position" in body && typeof body.position === "number" && Number.isInteger(body.position) && body.position >= 0) onPlace(body.position);
     }).catch(() => undefined);
   }, QUEUE_POLL_MS) : undefined;
+  const onStage = options.onStage;
   try {
-    response = await fetchFn("/api/aadi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ case: snapshot }), signal: options.signal });
-    data = await response.json();
+    const response = await fetchFn("/api/aadi", { method: "POST", headers: { "Content-Type": "application/json", ...(onStage ? { Accept: `${stageStreamType}, application/json` } : {}) }, body: JSON.stringify({ case: snapshot }), signal: options.signal });
+    if (onStage && response.headers.get("content-type")?.startsWith(stageStreamType)) {
+      const final = await readAnalysisStream(response, event => { if (!options.signal?.aborted) onStage(event); });
+      status = final.status; data = final.body;
+    } else { status = response.status; data = await response.json(); }
   } catch (error) {
     // A cancel stays a cancel; a lost connection or unreadable body gets the same wording as the server's 502.
     if (options.signal?.aborted) throw error;
     throw new Error("Layanan analisis tidak dapat dihubungi atau respons tidak dapat dibaca.");
   } finally { waiting = false; clearInterval(poll); }
   options.signal?.throwIfAborted();
-  if (!response.ok) {
+  if (status < 200 || status > 299) {
     const error = data && typeof data === "object" && "error" in data && data.error && typeof data.error === "object" ? data.error : {};
     const message = "message" in error && typeof error.message === "string" ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia.";
     throw new AadiRequestError(message, "code" in error && typeof error.code === "string" ? error.code : undefined);

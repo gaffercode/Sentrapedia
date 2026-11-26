@@ -165,3 +165,15 @@ describe("without the new options", () => {
     releases[0](); expect((await first).status).toBe(200);
   });
 });
+
+describe("an unconfigured engine, in the words a doctor reads (design audit H3)", () => {
+  it("answers 503 NOT_CONFIGURED without infrastructure terms and says the question is kept", async () => {
+    const gateway = createAadiGateway({ log: () => undefined, token: "", fetchFn: async () => Response.json(result(0.01)) });
+    const response = await gateway.step(post());
+    expect(response.status).toBe(503);
+    const { error } = await response.json();
+    expect(error.code).toBe("NOT_CONFIGURED");
+    expect(error.message).not.toMatch(/token|server|konfigurasi/i);
+    expect(error.message).toBe("Layanan analisis belum tersambung. Pertanyaan Anda tetap tersimpan; coba lagi nanti atau hubungi pengelola workspace.");
+  });
+});

@@ -91,10 +91,15 @@ function seedWording(patient: Patient): Patient {
 /** Where saved text that no longer validates is kept, so a reset never destroys it. */
 export const unreadableKey = `${storageKey}-unreadable`;
 
+/** A first visit starts here: no demo patient or encounter, so the first case never lands in a seeded record (UI audit P0 #1). */
+export const emptyWorkspace: Workspace = { ...initialWorkspace, patients: [], lists: [], encounters: [], activeEncounterId: null };
+/** True for the seed patient's placeholder note, which must never travel as case history. */
+export function isSeedPatientNote(notes: string): boolean { return notes.trim() === initialWorkspace.patients[0].notes; }
+
 /** The workspace to start with, plus the saved text when it could not be read (null when nothing was lost). */
 export function loadWorkspace(raw: string | null): { workspace: Workspace; unreadable: string | null } {
   const workspace = raw ? parseWorkspace(raw) : null;
-  return workspace ? { workspace, unreadable: null } : { workspace: initialWorkspace, unreadable: raw };
+  return workspace ? { workspace, unreadable: null } : { workspace: emptyWorkspace, unreadable: raw };
 }
 
 /** A validated workspace from saved or imported JSON, or null when the text is not a workspace backup. */

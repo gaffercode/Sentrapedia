@@ -256,6 +256,18 @@ test("an interrupted index build resumes from its partial vectors and embeds onl
   assert.ok(!existsSync(join(root, "theoracle/index/vectors.partial.f32")) && !existsSync(join(root, "theoracle/index/vectors.partial.json")));
 }));
 
+test("index build --index-dir builds another folder's chunks and leaves theoracle/index alone", withCapsule("index-dir", async root => {
+  indexFixture(root, ["one"]);
+  const other = join(root, "eval-index");
+  write(root, "eval-index/chunks.jsonl", ["alpha", "beta"].map(text => JSON.stringify({ id: text, text })).join("\n") + "\n");
+  const { code, stderr } = await run(join(root, "scripts/build-theoracle-index.mjs"), ["--index-dir", other]);
+  assert.equal(code, 0, stderr);
+  const manifest = JSON.parse(readFileSync(join(other, "manifest.json"), "utf8"));
+  assert.equal(manifest.chunks.count, 2);
+  assert.equal(manifest.vectors.sha256, sha(readFileSync(join(other, "vectors.f32"))));
+  assert.ok(!existsSync(join(root, "theoracle/index/vectors.f32")) && !existsSync(join(root, "theoracle/index/manifest.json")));
+}));
+
 test("index build refuses a model file that does not match its pinned hash and writes nothing", withCapsule("index-model", async root => {
   indexFixture(root, ["one"]);
   writeFileSync(join(root, "theoracle/model/stub/model/config.json"), "changed");

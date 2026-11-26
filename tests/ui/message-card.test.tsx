@@ -41,11 +41,17 @@ describe("MessageCard", () => {
     print.mockRestore();
   });
 
+  it("a question answer carries no stale 'Hubungkan AI Clinical' note", () => {
+    render(<MessageCard message={a("question", "Jawaban.")} {...handlers()}/>);
+    expect(screen.queryByText(/Siap untuk peninjauan Evidence/)).toBeNull();
+    expect(screen.queryByText(/Hubungkan AI Clinical/)).toBeNull();
+  });
+
   it("a document answer is one line plus a card that opens the pane", () => {
     const h = handlers();
     const message = a("clinic", "# Catatan Klinis\n\n## S\nx");
     render(<MessageCard message={message} {...h}/>);
-    expect(screen.getByText("Draf Catatan Klinis (SOAP) disusun.")).toBeTruthy();
+    expect(screen.getByText("Template Catatan Klinis (SOAP) disusun dari teks Anda, tanpa analisis AI.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Salin" })).toBeNull();
     const card = screen.getByRole("button", { name: /Catatan Klinis/ });
     expect(card.className).toContain("document-card");

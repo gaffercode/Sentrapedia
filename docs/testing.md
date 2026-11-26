@@ -18,7 +18,7 @@ Tests import application code from `../src/`. `tests/theoracle-aadi.test.ts` rea
 
 | Layer | Runner and command | Files | Environment |
 | --- | --- | --- | --- |
-| App tests | Vitest 5 (`vitest run`, the first half of `npm test`) | 42 `*.test.ts[x]` files in `tests/` and 17 in `tests/ui/` | Node by default; jsdom where a file starts with the `@vitest-environment` docblock (all of `tests/ui/`, plus a few others) |
+| App tests | Vitest 5 (`vitest run`, the first half of `npm test`) | 43 `*.test.ts[x]` files in `tests/` and 17 in `tests/ui/` | Node by default; jsdom where a file starts with the `@vitest-environment` docblock (all of `tests/ui/`, plus a few others) |
 | System tests | `node --test`, `npm run test:system` | Nine `tests/*.node-test.mjs` files, named one by one in `package.json` | Plain Node; some build temporary capsules, local HTTP stubs or temporary git repositories |
 | Site tests | `npm --prefix apps/site test` (second half of `npm test`): builds the site, then `node --test` in `apps/site` | 8 files in `apps/site/tests/`, 13 `*.test.mjs` files in `apps/site/scripts/` | Built-in Node modules only |
 | Engine tests | `npm run test:aadi` runs `scripts/test-aadi.mjs`, which starts the venv Python on `aadi/test.py`, which runs pytest on `aadi/service/tests` | 9 files | Python 3.11 venv in `.runtime/aadi/venv`, model client always a fake |
@@ -32,7 +32,7 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 | --- | --- | --- |
 | Gateway and AADI client | `aadi-client`, `aadi-pipeline`, `aadi-paid`, `aadi-beta-access`, `aadi-composer`, `theoracle-aadi` | `src/lib/aadi/`: the gateway as the trust boundary (origin and host checks, body size, single-flight and `maxConcurrent`, timeout, cancellation, grounding required before retrieval and inference, no inference after a no-match), the targeted therapy second step, client-side validation and identity checks, case assembly from the composer, contract and schema validation with the schema hashes, and the draft built from a result. Gateways get a fake `fetchFn` and fake retrievers, so nothing leaves the process. `aadi-paid` is named for the paid profile but is mocked |
 | Evidence gate and presentation | `theoracle-evidence-gate` (the largest file), `diagnosis-presentation`, `analysis-view` | `applyTherapyGate`: dose forms (tablet and capsule counts, percent, per-kg, ranges, Unicode minus, unit stripping), cross-referenced SSOT doses, OAT abbreviations; the six-section document, doctor summary, copy and referral text, pipeline trace, and how stored results are re-gated for display |
-| Retrieval | `theoracle-grounding`, `public-data`, `icd-name-match`, `guards`, `pii-parity` | Retrieval over a small index the test generates in a temporary folder with a fake embedder (two-per-document cap, dose-passage swap, relevance floor and its no-match answer, privacy filter, tampered or incomplete index refused, warm-up). One test uses the real index and the local model. The public build without the database, the eval ICD name matcher, shared shape guards, and the client side of the identity parity rows |
+| Retrieval | `theoracle-grounding`, `theoracle-eval`, `public-data`, `icd-name-match`, `guards`, `pii-parity` | Retrieval over a small index the test generates in a temporary folder with a fake embedder (two-per-document cap, dose-passage swap, relevance floor and its no-match answer, privacy filter, tampered or incomplete index refused, warm-up). One test uses the real index and the local model. `theoracle-eval` scores retrieval and the evidence gate on a public synthetic corpus with the pinned model (see below). The public build without the database, the eval ICD name matcher, shared shape guards, and the client side of the identity parity rows |
 | Closed beta and auth | `beta-auth`, `beta-auth-routes`, `beta-auth-proxy`, `beta-auth-pages.test.tsx`, `auth-headers`, `clerk-webhook`, `user-access-flow.test.tsx` | Configuration resolution, server-owned access and consent decisions, `/api/aadi` authorization, proxy behaviour and browser hardening, the CSP, the `user.deleted` webhook, and the self-service access flow, including the `/apply` waitlist page. Clerk and Next modules are replaced with `vi.mock` |
 | Workspace data | `workspace`, `workspace-session`, `workspace-storage`, `workspace-fixtures`, `workflow` | The reducer, validation, restore and the unreadable-backup path, principal-owned storage keys, frozen saved workspaces, personal templates, revisions and review guards, keyboard shortcuts |
 | Sync | `sync-guard`, `sync-merge`, `sync-messages`, `sync-principal`, `sync-schema` | De-identified projection before upload, add-only merge on pull, Indonesian messages, the sync principal, and the SQL migrations read as text (forced row-level security, a non-owner runtime role, the exact table set). No database is contacted |
@@ -71,11 +71,33 @@ Static declaration counts (a text search for `it(`/`test(` and `def test_`, not 
 
 Public code ships without the database (`docs/data.md`). Three skip mechanisms keep the suites green there:
 
-1. Vitest: `tests/private-data.ts` exports `withCatalog` (true when the real catalog is installed) and `withIndex` (the manifest and `vectors.f32` both exist). Affected tests use `skipIf`: catalog tests in `theoracle-aadi`, `diagnosis-presentation` and `theoracle-evidence-gate`, and the real-index test in `theoracle-grounding`.
+1. Vitest: `tests/private-data.ts` exports `withCatalog` (true when the real catalog is installed) and `withIndex` (the manifest and `vectors.f32` both exist). Affected tests use `skipIf`: catalog tests in `theoracle-aadi`, `diagnosis-presentation` and `theoracle-evidence-gate`, and the real-index test in `theoracle-grounding`. `theoracle-eval` needs no private data, only the public model, and runs in CI.
 2. Node tests: `skip` options for the installed-index check, and the chunk-build tests when the SSOT or manifest is missing.
 3. pytest: the Med Assist contract-copy test needs an environment variable pointing at that contract folder.
 
 Never paste database passages into tests, fixtures or documents.
+
+## Public synthetic TheOracle eval
+
+`tests/theoracle-eval.test.ts` gives the public repository and CI a retrieval and evidence-gate eval without the private knowledge base. Its inputs are two fixtures written for it, never copied from the database: `tests/fixtures/theoracle-eval/corpus.json` (31 passages in 16 documents, all titled `SINTETIS ...`, including one off-topic document and one passage with a phone number that the privacy filter must drop) and `cases.json` (23 retrieval cases, 12 therapy-retrieval cases, 11 evidence-gate cases, the thresholds). The passages are not clinically reviewed; the eval measures retrieval and matching, not clinical correctness.
+
+- **Layer 1, no model** (runs everywhere): every gate case through `gateTherapy` with the evidence the case declares. Statuses, evidence ids and the shown tablet strength must match.
+- **Layer 2, pinned model** (runs when `theoracle/model` holds the pinned EmbeddingGemma files): `scripts/build-theoracle-index.mjs --index-dir <temp>` embeds the corpus with the production builder; the production retriever answers every case from that folder; the gate reads what was actually retrieved. In CI `SENTRAPEDIA_ORACLE_EVAL=required` turns a missing model into a failure instead of a skip.
+
+Acceptance criteria (thresholds live in `cases.json`; raise them as scores rise, never lower one without Gaffer's word):
+
+| Check | Criterion |
+| --- | --- |
+| Clinical-wording retrieval (15 cases) | gold document in the six passages for every case (recall@6 = 1), MRR >= 0.9 |
+| Lay-wording retrieval (8 cases) | recall@6 = 1 |
+| Therapy retrieval | the diagnosis's dose passage reaches the therapy evidence for all 12 diagnoses |
+| Privacy | the phone-number passage is never returned, even for a query written to match it |
+| Evidence gate | every case gets its expected status, in layer 1 with declared evidence and in layer 2 with retrieved evidence |
+| Known gaps | a case marked `knownGap` runs as an expected failure (`it.fails`): green while the gap is open, red once it is fixed, so the marker is removed with the fix |
+
+The run writes `node_modules/.cache/theoracle-eval/report.json` (per-case ranks, latency, the top similarity of on-topic and off-topic queries) and, in GitHub Actions, the summary to the job page. The eval retrieves with the relevance floor off (`minSimilarity: -1`), because the synthetic corpus scores lower than the real index and the production floor (0.35) is calibrated on the real index only. It asserts that the weakest on-topic case still scores above the strongest off-topic query, and records both numbers.
+
+First run with the model (GitHub Actions run 45874985015, 2026-11-26, about 24 s for the file): clinical recall@6 1 and MRR 1, lay recall@6 1 and MRR 0.938, therapy dose recall 1, every gate case as expected; the lowest top similarity of an on-topic case was 0.2496 and the highest of an off-topic query 0.1457. The thresholds above were set from that run.
 
 ## What is not tested
 
@@ -85,7 +107,7 @@ Never paste database passages into tests, fixtures or documents.
 - **Docker.** CI builds the image but never runs it; no test starts it.
 - **Live Clerk, Neon, Resend, Cloudflare, GitHub Actions.** Replaced by mocks, text checks or a JavaScript evaluation of the workflow conditions.
 - **Non-Windows launcher guardian**, and macOS entirely.
-- **Retrieval quality** beyond fixtures: `npm run benchmark:oracle` scores recall locally but is not part of `test:all`. Its `relevanceFloor` section calibrates `THEORACLE_MIN_SIMILARITY`: the best passage's similarity for every eval query and for a fixed set of non-clinical queries, and for each candidate floor from 0.20 to 0.60 how many eval queries it would reject and how many non-clinical queries it would let through. Eval queries that answer no-match at the current floor are listed and count as misses.
+- **Retrieval quality on the real knowledge base**: `npm run benchmark:oracle` scores recall on the private index locally and is not part of `test:all`. CI scores only the synthetic corpus below, which shows regressions in the retriever, the model pin and the gate, not how well the real corpus is covered. Its `relevanceFloor` section calibrates `THEORACLE_MIN_SIMILARITY`: the best passage's similarity for every eval query and for a fixed set of non-clinical queries, and for each candidate floor from 0.20 to 0.60 how many eval queries it would reject and how many non-clinical queries it would let through. Eval queries that answer no-match at the current floor are listed and count as misses.
 
 ## Running one file
 

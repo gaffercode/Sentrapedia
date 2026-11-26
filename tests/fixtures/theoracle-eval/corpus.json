@@ -1,0 +1,212 @@
+{
+  "notice": "SYNTHETIC TEST FIXTURE. Every passage was written for the public TheOracle retrieval and evidence-gate eval (tests/theoracle-eval.test.ts). It is not taken from the private knowledge base, is not clinically reviewed and must never be served as clinical guidance. Doses are only there so the evidence gate has something to match.",
+  "docSource": "Sentrapedia synthetic eval fixture",
+  "origin": "synthetic-eval",
+  "published": "26/11/2026",
+  "documents": [
+    {
+      "title": "SINTETIS Malaria Falsiparum.md",
+      "passages": [
+        {
+          "id": "mal-1",
+          "text": "Malaria falsiparum ditandai demam tinggi yang disertai menggigil dan berkeringat secara berkala, sakit kepala, nyeri otot dan mual. Tanyakan riwayat tinggal atau bepergian ke daerah endemis malaria seperti Papua dan Nusa Tenggara Timur dalam satu bulan terakhir."
+        },
+        {
+          "id": "mal-2",
+          "text": "Diagnosis malaria ditegakkan dengan pemeriksaan mikroskopis apusan darah tebal dan tipis atau tes diagnostik cepat (RDT). Waspadai malaria berat bila terdapat penurunan kesadaran, anemia berat, ikterus atau syok."
+        },
+        {
+          "id": "mal-3",
+          "text": "Terapi malaria falsiparum tanpa komplikasi adalah dihidroartemisinin + piperakuin (DHP) selama 3 hari; tiap tablet mengandung 40 mg dihidroartemisinin dan 320 mg piperakuin. Dewasa BB 41-59 kg minum 3 tablet DHP sekali sehari; BB 60 kg atau lebih minum 4 tablet DHP sekali sehari. Pada hari pertama ditambahkan primakuin 0,25 mg/kgBB dosis tunggal."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Demam Berdarah Dengue.md",
+      "passages": [
+        {
+          "id": "dbd-1",
+          "text": "Demam berdarah dengue diawali demam tinggi mendadak selama 2 sampai 7 hari disertai nyeri kepala, nyeri belakang bola mata, nyeri otot dan sendi. Dapat ditemukan bintik perdarahan (petekie), mimisan, gusi berdarah dan uji torniket positif."
+        },
+        {
+          "id": "dbd-2",
+          "text": "Pemeriksaan darah pada demam berdarah dengue menunjukkan trombositopenia dan peningkatan hematokrit akibat kebocoran plasma. Tanda bahaya meliputi nyeri perut hebat, muntah terus-menerus, perdarahan mukosa dan gelisah; pasien dengan tanda bahaya dirawat inap."
+        },
+        {
+          "id": "dbd-3",
+          "text": "Tatalaksana demam berdarah dengue bersifat suportif dengan cukup cairan oral atau infus kristaloid sesuai derajat kebocoran plasma. Untuk demam diberikan parasetamol 500 mg 3-4 kali sehari pada dewasa. Hindari aspirin dan ibuprofen karena meningkatkan risiko perdarahan."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Demam Tifoid.md",
+      "passages": [
+        {
+          "id": "tif-1",
+          "text": "Demam tifoid ditandai demam yang naik bertahap terutama sore dan malam hari selama lebih dari satu minggu, disertai nyeri perut, sembelit atau diare, lidah kotor dengan tepi kemerahan dan bradikardia relatif."
+        },
+        {
+          "id": "tif-2",
+          "text": "Terapi demam tifoid dewasa adalah kloramfenikol 4 x 500 mg per oral selama 14 hari. Alternatif yang dapat dipakai adalah seftriakson 2 g intravena sekali sehari selama 5 hari."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Pneumonia Komunitas.md",
+      "passages": [
+        {
+          "id": "pne-1",
+          "text": "Pneumonia komunitas ditandai batuk berdahak, demam, sesak napas dan nyeri dada saat menarik napas. Pada pemeriksaan fisik ditemukan napas cepat dan ronki basah; foto toraks menunjukkan infiltrat."
+        },
+        {
+          "id": "pne-2",
+          "text": "Terapi pneumonia komunitas rawat jalan pada dewasa tanpa komorbid adalah amoksisilin 3 x 500 mg per oral selama 5 hari. Evaluasi ulang setelah 48 sampai 72 jam; rujuk bila saturasi oksigen menurun atau napas makin cepat."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Tuberkulosis Paru.md",
+      "passages": [
+        {
+          "id": "tb-1",
+          "text": "Tuberkulosis paru dicurigai pada batuk berdahak lebih dari dua minggu, kadang berdahak darah, disertai keringat malam tanpa aktivitas, demam ringan, nafsu makan turun dan berat badan menurun."
+        },
+        {
+          "id": "tb-2",
+          "text": "Diagnosis tuberkulosis paru memakai tes cepat molekuler (TCM) dahak atau pemeriksaan mikroskopis BTA. Kontak serumah pasien tuberkulosis diperiksa untuk penemuan kasus aktif."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Diare Akut.md",
+      "passages": [
+        {
+          "id": "dia-1",
+          "text": "Diare akut adalah buang air besar cair lebih dari tiga kali sehari yang berlangsung kurang dari 14 hari. Nilai derajat dehidrasi dari kesadaran, mata cekung, rasa haus dan turgor kulit."
+        },
+        {
+          "id": "dia-2",
+          "text": "Tatalaksana diare akut pada anak adalah oralit setiap kali buang air besar cair dan zinc 20 mg sekali sehari selama 10 hari untuk anak usia 6 bulan ke atas. ASI dan makanan tetap diberikan."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Hipertensi Esensial.md",
+      "passages": [
+        {
+          "id": "htn-1",
+          "text": "Hipertensi ditegakkan bila tekanan darah sistolik 140 mmHg atau lebih atau diastolik 90 mmHg atau lebih pada dua kali kunjungan. Sebagian besar pasien tanpa keluhan; sebagian mengeluh pusing atau tengkuk terasa berat."
+        },
+        {
+          "id": "htn-2",
+          "text": "Terapi awal hipertensi esensial pada dewasa dapat memakai amlodipin 5-10 mg sekali sehari per oral, disertai pembatasan garam, aktivitas fisik dan penurunan berat badan."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Diabetes Melitus Tipe 2.md",
+      "passages": [
+        {
+          "id": "dm-1",
+          "text": "Diabetes melitus tipe 2 dicurigai pada keluhan sering buang air kecil, sering haus, sering lapar dan berat badan turun. Diagnosis ditegakkan bila gula darah puasa 126 mg/dL atau lebih, atau HbA1c 6,5% atau lebih."
+        },
+        {
+          "id": "dm-2",
+          "text": "Terapi farmakologis awal diabetes melitus tipe 2 adalah metformin 500 mg 2-3 kali sehari sesudah makan, dinaikkan bertahap sesuai toleransi, bersama pengaturan makan dan aktivitas fisik."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Asma.md",
+      "passages": [
+        {
+          "id": "asm-1",
+          "text": "Asma ditandai sesak napas berulang dengan bunyi mengi, dada terasa berat dan batuk yang memburuk pada malam hari atau setelah terpapar debu, asap atau udara dingin."
+        },
+        {
+          "id": "asm-2",
+          "text": "Serangan asma ringan sampai sedang diatasi dengan salbutamol inhalasi 2-4 puff setiap 20 menit pada jam pertama. Nilai ulang respons; rujuk bila tidak membaik."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Sistitis.md",
+      "passages": [
+        {
+          "id": "isk-1",
+          "text": "Sistitis atau infeksi saluran kemih bawah ditandai nyeri saat berkemih, sering berkemih sedikit-sedikit (anyang-anyangan), rasa tidak tuntas dan nyeri perut bawah, tanpa demam tinggi."
+        },
+        {
+          "id": "isk-2",
+          "text": "Terapi sistitis tanpa komplikasi pada wanita dewasa adalah nitrofurantoin 2 x 100 mg per oral selama 5 hari. Anjurkan minum air yang cukup."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Gastritis.md",
+      "passages": [
+        {
+          "id": "gas-1",
+          "text": "Gastritis dan dispepsia ditandai nyeri atau perih di ulu hati, perut kembung, mual dan cepat kenyang, sering kambuh saat terlambat makan atau setelah makanan pedas."
+        },
+        {
+          "id": "gas-2",
+          "text": "Terapi gastritis adalah omeprazol 20 mg sekali sehari sebelum makan pagi selama 2 sampai 4 minggu, disertai makan teratur dan menghindari makanan pemicu."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Skabies.md",
+      "passages": [
+        {
+          "id": "ska-1",
+          "text": "Skabies ditandai gatal hebat terutama pada malam hari, papul dan terowongan kecil di sela jari tangan, pergelangan tangan, ketiak dan lipat paha. Keluhan serupa sering dialami anggota keluarga atau teman sekamar di pesantren."
+        },
+        {
+          "id": "ska-2",
+          "text": "Terapi skabies adalah permetrin krim 5% dioleskan ke seluruh tubuh dari leher ke bawah, dibiarkan 8 sampai 12 jam lalu dibilas, dan diulang setelah satu minggu. Seluruh anggota keluarga diobati bersamaan."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Faringitis Akut.md",
+      "passages": [
+        {
+          "id": "far-1",
+          "text": "Faringitis akut ditandai nyeri tenggorokan dan nyeri menelan, demam, faring hiperemis dan pembesaran amandel. Sebagian besar disebabkan virus dan sembuh sendiri."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Migrain.md",
+      "passages": [
+        {
+          "id": "mig-1",
+          "text": "Migrain ditandai nyeri kepala sebelah yang berdenyut selama 4 sampai 72 jam, memburuk dengan aktivitas, disertai mual, muntah dan silau terhadap cahaya atau suara."
+        },
+        {
+          "id": "mig-2",
+          "text": "Serangan migrain ringan diobati dengan ibuprofen 400 mg per oral saat serangan, dapat diulang setelah 6 jam, istirahat di ruangan gelap dan tenang."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Administrasi Puskesmas.md",
+      "passages": [
+        {
+          "id": "adm-1",
+          "text": "Jadwal pelayanan poli umum Senin sampai Sabtu pukul 08.00 sampai 14.00. Pendaftaran pasien BPJS memakai kartu peserta dan surat rujukan dari fasilitas kesehatan tingkat pertama."
+        }
+      ]
+    },
+    {
+      "title": "SINTETIS Kontak Konsultasi.md",
+      "passages": [
+        {
+          "id": "kon-1",
+          "text": "Konsultasi kasus pneumonia, batuk lama dan tuberkulosis paru dapat menghubungi dokter jaga di nomor 081234567890 setiap hari kerja."
+        }
+      ]
+    }
+  ]
+}
