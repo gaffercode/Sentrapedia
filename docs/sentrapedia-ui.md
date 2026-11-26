@@ -187,3 +187,17 @@ From the 2026-11-26 design audit (recommendations 1-4; token migration waits for
 - At 600px and below dialog actions stack full width in DOM order, so focus order matches what is seen.
 
 Tests: `tests/ui/design-audit-fixes.test.tsx`, plus the NOT_CONFIGURED wording in `tests/aadi-guardrails.test.ts`. Browser check at 390/768/1440 px with Playwright and axe-core (0 violations on the audited screens).
+
+## Design standard (Gaffer, 2026-11-26)
+
+The current "Glass" look is the approved design standard for the workspace: Geist for text and Plus Jakarta Sans for titles, the Tosca accent (`--color-action-primary` #40e0d0, `--workspace-accent-ink` #086b61), `--radius-control` 8px and `--radius-structure` 12px, and the overrides in `src/app/globals.css` `:root`. There is no planned migration to the Swiss foundation look (Archivo, 0/2px radii, ink primary). The admission pages (`src/app/auth.css`) keep the marketing site's Inter voice on purpose.
+
+`src/app/sentra-tokens.css` (Sentraverse UI Foundation Tokens v1.0) is still imported and supplies the semantic variables that `globals.css` overrides. Its values are not the standard where `globals.css` overrides them. These groups are defined there but unused by the workspace as of 2026-11-26:
+
+- Spacing `--space-1…9`: components use literal px values.
+- Motion `--motion-duration-*`, `--motion-easing-standard`: transitions use literal durations.
+- Breakpoints 640/1024/1440 (comment only): media queries use their own widths, mainly 600, 760, 900 and 1200px.
+- Type `--font-family-*`, `--font-size-*`, `--letter-spacing-*`: the workspace uses `--font-body`, `--font-title` and its own `--text-*` scale.
+- Dark theme `[data-theme="dark"]`: nothing sets `data-theme`, so the workspace is light only.
+
+Used from it: `--target-min` (44px touch targets), and the semantic colour names that `globals.css` re-points. Code changes keep following `globals.css`; whether the unused groups are adopted or removed is a separate decision.
