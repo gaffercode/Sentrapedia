@@ -8,6 +8,12 @@ export function composerUsesAadi(mode: ModeId, personalTemplate: boolean): boole
   return !personalTemplate && (["question", "ddx", "workup", "refer", "icd10"] as ModeId[]).includes(mode);
 }
 
+/** What a mode is to the doctor: an AADI analysis, or a local template that only reorganises the typed text (UI audit P0 #4). */
+export function modeKind(mode: ModeId, personalTemplate = false): "ai" | "template" {
+  return composerUsesAadi(mode, personalTemplate) ? "ai" : "template";
+}
+export const modeKindLabel = { ai: "AI", template: "Template" } as const;
+
 // The composer's case strip (Gaffer, 2026-10-20: "Setuju semua"): age, sex and vitals as typed, so they reach the case's
 // structured fields instead of staying inside the complaint text.
 export const caseFieldKeys = ["age", "sex", "bp", "heartRate", "temperature", "respiratoryRate", "spo2"] as const;

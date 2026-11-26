@@ -36,7 +36,7 @@ export function MessageCard({ message, onEdit, onToast, onReuse, onOpenDocument 
   return <article ref={article} className="assistant-message" data-reveal={fresh || undefined}>
     {/* A document lives in the pane; the chat keeps one line and a card that opens it. */}
     {paneDocument(message) ? <>
-      {aadi ? <div className="doctor-summary">{doctorSummary(content).map((line, index) => { const at = line.indexOf(":"); return <p key={index}>{at > 0 ? <><strong>{line.slice(0, at + 1)}</strong>{line.slice(at + 1)}</> : line}</p>; })}</div> : <p className="document-line">{`Draf ${modeName} disusun.`}</p>}
+      {aadi ? <div className="doctor-summary">{doctorSummary(content).map((line, index) => { const at = line.indexOf(":"); return <p key={index}>{at > 0 ? <><strong>{line.slice(0, at + 1)}</strong>{line.slice(at + 1)}</> : line}</p>; })}</div> : <p className="document-line">{`Template ${modeName} disusun dari teks Anda, tanpa analisis AI.`}</p>}
       <button type="button" className="document-card" onClick={() => onOpenDocument(message.id)}><span><strong>{aadi ? "Analisis kasus" : documentTitle(content).replace(/^# /, "") || modeName}</strong><small>{workspaceDate(message.createdAt)}</small></span></button>
       {trace.length > 0 && <details className="pipeline-trace"><summary>Jejak analisis</summary><ol>{trace.map((step, index) => <li key={index}>{step.stage} · {step.ms} ms{step.ok ? "" : " · gagal"}</li>)}</ol></details>}
     </> : <>

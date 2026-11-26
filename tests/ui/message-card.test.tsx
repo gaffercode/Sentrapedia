@@ -45,7 +45,7 @@ describe("MessageCard", () => {
     const h = handlers();
     const message = a("clinic", "# Catatan Klinis\n\n## S\nx");
     render(<MessageCard message={message} {...h}/>);
-    expect(screen.getByText("Draf Catatan Klinis (SOAP) disusun.")).toBeTruthy();
+    expect(screen.getByText("Template Catatan Klinis (SOAP) disusun dari teks Anda, tanpa analisis AI.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Salin" })).toBeNull();
     const card = screen.getByRole("button", { name: /Catatan Klinis/ });
     expect(card.className).toContain("document-card");

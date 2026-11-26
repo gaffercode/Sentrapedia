@@ -8,6 +8,7 @@ import { modes, type ModeId } from "../lib/drafts";
 import { composerPlaceholder, withOpening } from "../lib/studio";
 import { modeCategories } from "../lib/clinical-templates";
 import { modelLabel } from "../lib/ui-labels";
+import { modeKind, modeKindLabel } from "../lib/aadi/composer";
 import type { PersonalTemplate } from "../lib/workflow";
 import type { Encounter, Settings } from "../lib/workspace";
 import { useDictation } from "./use-dictation";
@@ -20,7 +21,7 @@ const modeLabel = (id: ModeId) => modes.find((item) => item.id === id)!.label;
 function slashGroups(query: string, templates: PersonalTemplate[], favorites: string[]) {
   const needle = query.toLowerCase();
   const all = [
-    ...[...new Set(modeCategories.flatMap((group) => group.modes))].map((id) => ({ key: `mode:${id}`, label: modeLabel(id), hint: `/${id}`, search: `${id} ${modeLabel(id)}` })),
+    ...[...new Set(modeCategories.flatMap((group) => group.modes))].map((id) => ({ key: `mode:${id}`, label: modeLabel(id), hint: `/${id} · ${modeKindLabel[modeKind(id)]}`, search: `${id} ${modeLabel(id)}` })),
     ...templates.map((item) => ({ key: `template:${item.id}`, label: item.name, hint: "", search: item.name })),
   ].filter((option) => option.search.toLowerCase().includes(needle));
   return [

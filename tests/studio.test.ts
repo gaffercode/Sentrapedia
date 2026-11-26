@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { intentGroups, emptySection, documentSections, documentTitle, supportingSection, replaceSection, encounterTimeline, contextFacts, composerPlaceholder, downloadName, chipShortlist, chipLabel, headlineFor, withOpening, stripOpening } from "../src/lib/studio";
 import { defaultReviewItems } from "../src/lib/workflow";
 import { createDraft, modeIds, modes, type ModeId } from "../src/lib/drafts";
+import { modeKind } from "../src/lib/aadi/composer";
 import { clinicalTemplates, insertTemplate, modeCategories, templateText } from "../src/lib/clinical-templates";
 import { initialWorkspace, workspaceReducer, type Message, type Workspace, loadWorkspace } from "../src/lib/workspace";
 
@@ -224,4 +225,8 @@ describe("mode openings and the chip shortlist", () => {
     const opening = (id: string) => modes.find((m) => m.id === id)!.opening;
     expect(stripOpening(`${opening("ddx")}\n  `)).toBe("");
   });
+  it("five modes are AI, the rest are templates", () => {
+    expect(modes.filter((m) => modeKind(m.id) === "ai").map((m) => m.id).sort()).toEqual(["ddx", "icd10", "question", "refer", "workup"]);
+  });
+  it("personal template is a template", () => { expect(modeKind("ddx", true)).toBe("template"); });
 });
