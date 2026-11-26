@@ -9,6 +9,7 @@ import {
   THEORACLE_GROUNDING_CAPABILITY,
   TheOracleGroundingError,
   retrieveTheOracleGrounding,
+  THEORACLE_MIN_SIMILARITY,
   retrieveTheOracleTherapyGrounding,
   warmTheOracleGrounding,
   type TheOracleManifest,
@@ -75,7 +76,8 @@ describe("TheOracle vector grounding", () => {
   });
 
   it("keeps at most two passages per document and skips sources that trip the AADI privacy guard", async () => {
-    const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]) });
+    // The floor is off here so the low-similarity passages B1 and D1 show the cap and the privacy filter.
+    const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]), minSimilarity: -1 });
     expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["A1", "A2", "B1", "D1"]);
     expect(bundle.evidence.map(item => item.retrievalRank)).toEqual([1, 2, 3, 4]);
   });
@@ -90,11 +92,11 @@ describe("TheOracle vector grounding", () => {
   it("adds the best treatment passage that states a dose, from any guideline, in place of the lowest-ranked match", async () => {
     const therapyEmbedder = async () => async (text: string) => Float32Array.from(text.endsWith("dosis obat") ? [0, 0, 1] : [1, 0, 0]);
     const indexDir = fixtureIndex();
-    const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder: therapyEmbedder });
+    const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder: therapyEmbedder, minSimilarity: -1 });
     expect(validTheOracleGrounding(bundle)).toBe(true);
     expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["A1", "A2", "B1", "D1"]);
     expect(bundle.evidence.map(item => item.retrievalRank)).toEqual([1, 2, 3, 4]);
-    expect((await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder: therapyEmbedder, limit: 3 })).evidence.map(item => item.evidenceId)).toEqual(["A1", "A2", "D1"]);
+    expect((await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir, embedder: therapyEmbedder, limit: 3, minSimilarity: -1 })).evidence.map(item => item.evidenceId)).toEqual(["A1", "A2", "D1"]);
   });
 
   it("keeps the two-per-document cap: the dose passage takes its document's lower match and the next match moves up", async () => {
@@ -114,7 +116,7 @@ describe("TheOracle vector grounding", () => {
   it("retrieves therapy for a diagnosis: dose passages first, then others, with patient context in the query", async () => {
     const calls: string[] = [];
     const embedder = async () => async (text: string) => { calls.push(text); return Float32Array.from([0, 0, 1]); };
-    const bundle = await retrieveTheOracleTherapyGrounding({ ...caseFor("batuk"), demographics: { ageYears: 30, sex: "F", pregnant: true }, currentMedications: ["warfarin"] }, { icd10: "J18.9", label: "Pneumonia" }, { indexDir: fixtureIndex(), embedder });
+    const bundle = await retrieveTheOracleTherapyGrounding({ ...caseFor("batuk"), demographics: { ageYears: 30, sex: "F", pregnant: true }, currentMedications: ["warfarin"] }, { icd10: "J18.9", label: "Pneumonia" }, { indexDir: fixtureIndex(), embedder, minSimilarity: -1 });
     expect(validTheOracleGrounding(bundle)).toBe(true);
     expect(calls).toEqual(["task: search result | query: Pneumonia (J18.9)\npenatalaksanaan terapi dosis obat\n30 tahun, perempuan, hamil\nObat rutin: warfarin"]);
     expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["D1", "A2", "A1", "B1"]);
@@ -133,6 +135,47 @@ describe("TheOracle vector grounding", () => {
     const error: unknown = await retrieveTheOracleTherapyGrounding(caseFor("batuk"), { icd10: "J18.9", label: "Pneumonia" }, { indexDir: fixtureIndex(false, onlyContact), embedder }).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(TheOracleGroundingError);
     expect(error).toMatchObject({ code: "THEORACLE_NO_MATCH" });
+  });
+
+  describe("relevance floor", () => {
+    // Query [1, 0, 0] against the fixture: A1 1.0, A2 0.994, B1 0.2, D1 0.0 (C1 and D2 fail the privacy filter).
+    it("sends only passages at or above the floor, and swaps in no dose passage that is below it", async () => {
+      const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]) });
+      expect(validTheOracleGrounding(bundle)).toBe(true);
+      expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["A1", "A2"]);
+      expect(bundle.evidence.every(item => item.similarity >= THEORACLE_MIN_SIMILARITY)).toBe(true);
+    });
+
+    it("answers THEORACLE_NO_MATCH when no passage clears the floor, and runs no therapy search", async () => {
+      const calls: string[] = [];
+      const embedder = async () => async (text: string) => { calls.push(text); return Float32Array.from([0, 0, 1]); };
+      const offTopic = fixtureChunks.filter(item => item.vector[2] === 0);
+      const error: unknown = await retrieveTheOracleGrounding(caseFor("resep kue bolu"), { indexDir: fixtureIndex(false, offTopic), embedder }).catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(TheOracleGroundingError);
+      expect(error).toMatchObject({ code: "THEORACLE_NO_MATCH", message: "Oracle tidak menemukan referensi yang cukup relevan untuk keluhan ini. Analisis tidak dijalankan." });
+      expect(calls).toHaveLength(1);
+    });
+
+    it("takes a stricter floor from the options", async () => {
+      const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]), minSimilarity: 0.995 });
+      expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["A1"]);
+    });
+
+    it("keeps the default floor when the option is not a finite number", async () => {
+      for (const minSimilarity of [Number.NaN, Number.NEGATIVE_INFINITY]) {
+        const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]), minSimilarity });
+        expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["A1", "A2"]);
+      }
+    });
+
+    it("applies the floor to therapy retrieval and answers THEORACLE_NO_MATCH when nothing clears it", async () => {
+      const toward = (vector: number[]) => async () => async () => Float32Array.from(vector);
+      // Query [0, 0, 1]: D1 0.958 clears the floor; the A and B passages score 0 or near it.
+      const bundle = await retrieveTheOracleTherapyGrounding(caseFor("batuk"), { icd10: "J18.9", label: "Pneumonia" }, { indexDir: fixtureIndex(), embedder: toward([0, 0, 1]) });
+      expect(bundle.evidence.map(item => item.evidenceId)).toEqual(["D1"]);
+      const error: unknown = await retrieveTheOracleTherapyGrounding(caseFor("batuk"), { icd10: "J18.9", label: "Pneumonia" }, { indexDir: fixtureIndex(), embedder: toward([0, -1, 0]) }).catch((caught: unknown) => caught);
+      expect(error).toMatchObject({ code: "THEORACLE_NO_MATCH", message: "Oracle tidak menemukan referensi terapi yang cukup relevan untuk diagnosis ini." });
+    });
   });
 
   it("clamps the evidence limit", async () => {

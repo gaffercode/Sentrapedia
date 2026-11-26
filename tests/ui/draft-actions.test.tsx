@@ -26,11 +26,14 @@ const analysis = (data: CaseState): AadiAnalysis => ({
 
 let sent: CaseState[] = [];
 let failAnalysis = false;
+let noMatch = false;
 const failure = "Layanan analisis sedang tidak tersedia.";
+const noMatchMessage = "Oracle tidak menemukan referensi yang cukup relevan untuk keluhan ini. Analisis tidak dijalankan.";
 
 beforeEach(() => {
   sent = [];
   failAnalysis = false;
+  noMatch = false;
   localStorage.clear();
   // Reduced motion: the answer appears whole, so the test needs no timers.
   Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn().mockImplementation((query: string) => ({ matches: query.includes("reduce"), media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() })) });
@@ -41,6 +44,7 @@ beforeEach(() => {
     if (init?.method !== "POST") return new Response(JSON.stringify({ configured: true, modelReady: true, groundingReady: true, ready: true }), { status: 200, headers: { "Content-Type": "application/json" } });
     const body = JSON.parse(String(init.body)) as { case: CaseState };
     sent.push(body.case);
+    if (noMatch) return new Response(JSON.stringify({ error: { code: "THEORACLE_NO_MATCH", message: noMatchMessage } }), { status: 422, headers: { "Content-Type": "application/json" } });
     if (failAnalysis) return new Response(JSON.stringify({ error: { code: "UPSTREAM_UNAVAILABLE", message: failure } }), { status: 502, headers: { "Content-Type": "application/json" } });
     return new Response(JSON.stringify(analysis(body.case)), { status: 200, headers: { "Content-Type": "application/json" } });
   });
@@ -92,5 +96,47 @@ describe("local draft when the analysis fails", () => {
     fireEvent.change(textarea(), { target: { value: "" } });
     expect(screen.queryByRole("button", { name: "Coba lagi" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Susun draf SOAP lokal" })).toBeNull();
+  });
+});
+
+describe("no evidence in TheOracle", () => {
+  async function noEvidence() {
+    noMatch = true;
+    render(<WorkspaceApp principalId="user_test"/>);
+    await act(async () => { await Promise.resolve(); });
+    fireEvent.change(textarea(), { target: { value: complaint } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Analisis kasus" })); });
+    await act(async () => { await Promise.resolve(); });
+    return screen.findByRole("alert");
+  }
+
+  it("says plainly that there is no evidence, asks for more findings, and offers no pointless retry", async () => {
+    const alert = await noEvidence();
+    expect(alert.textContent).toContain("Tidak ada bukti di Oracle");
+    expect(alert.textContent).toContain(noMatchMessage);
+    expect(alert.textContent).toContain("tidak menyusun diagnosis atau terapi");
+    expect(screen.queryByRole("button", { name: "Coba lagi" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Susun draf SOAP lokal" })).toBeTruthy();
+    expect(textarea().value).toBe(complaint);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("builds the local SOAP draft without a diagnosis and records why", async () => {
+    await noEvidence();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Susun draf SOAP lokal" })); });
+    const draft = savedDraft();
+    expect(draft.sourceText).toContain(noMatchMessage);
+    expect(draft.content).not.toMatch(/\b[A-Z]\d{2}(\.\d)?\b/);
+    expect(hasAadiSource(draft)).toBe(false);
+  });
+
+  it("returns to the ordinary failure notice when a later analysis fails for another reason", async () => {
+    await noEvidence();
+    noMatch = false; failAnalysis = true;
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Analisis kasus" })); });
+    await act(async () => { await Promise.resolve(); });
+    expect((await screen.findByRole("alert")).textContent).toContain(failure);
+    expect(screen.queryByText("Tidak ada bukti di Oracle")).toBeNull();
+    expect(screen.getByRole("button", { name: "Coba lagi" })).toBeTruthy();
   });
 });
