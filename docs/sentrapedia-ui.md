@@ -151,3 +151,14 @@ Terapi Farmakologi: "Untuk <diagnosis> (<kode>)", satu obat per baris dengan dos
 ## Workspace berbentuk Glass (2026-11-04)
 
 Menggantikan Clinical Cockpit, rail "Alur kasus", jawaban diketik, dan dialog Pengaturan Agent di atas. Sidebar mengikuti urutan Glass; kanvas terbagi antara chat dan panel dokumen di atas 1200 px (sheet "Dokumen encounter" di bawahnya). Chat berisi prosa, ringkasan dokter, dan kartu dokumen; panel berisi tab Ringkasan encounter dan satu tab per dokumen. Analisis AADI dirender dari hasil mesin yang tersimpan dalam bentuk diferensial Glass (`src/lib/aadi/analysis-view.ts`, `src/components/analysis-document.tsx`): Pembahasan kasus, Kemungkinan utama, Alternatif, Jangan terlewat, Langkah diagnostik berikutnya, Rencana tata laksana (lewat gerbang bukti; dosis yang tidak terverifikasi diberi tanda "Cek dosis obat"), Edukasi dan tindak lanjut, Kutipan pedoman (kartu bernomor, tautan `[n]`). Kartu berpikir hanya melaporkan yang terjadi (permintaan diterima, detik menunggu); jejak pipeline disimpan bersama jawaban. Komposer memakai satu baris chip (8 mode) dan `/` sebagai pemilih penuh. Pengaturan Agent menjadi halaman `/agent` dengan tab Preferensi, Mode dan templat, Pengetahuan; `settings.environment` tampil sebagai pil beranda, `settings.modeInstructions` hanya dipakai draf lokal. Token radius: `--radius-control` 8 px, `--radius-structure` 12 px. Bukti: `docs/verification/glass-redesign-2026-11-04/` (1440, 1024, 375 px; axe 0 pelanggaran).
+
+## Alur kasus yang lebih aman (2026-11-26)
+
+Empat perbaikan P0 dari audit alur UI (SVI-CEO-RPT-001), status REVIEW:
+
+- Workspace baru, atau workspace yang tidak dapat dibaca, mulai kosong: tanpa Pasien atau Encounter contoh (`emptyWorkspace`, `src/lib/workspace.ts`). Catatan Pasien contoh yang masih tersimpan di workspace lama tidak pernah dikirim ke AADI sebagai riwayat kasus (`isSeedPatientNote`).
+- Chip mode tetap menulis kalimat pembukanya di composer, tetapi kalimat itu dibuang saat kirim (`stripOpening`, `src/lib/studio.ts`), sehingga tidak menjadi Keluhan Utama atau keluhan utama AADI.
+- Bila Encounter yang terbuka sudah berisi kasus dan usia/jenis kelamin yang diketik berbeda (Pasien tersimpan dulu, lalu kasus pertama), kasus belum dikirim: composer menawarkan "Kasus baru" atau "Tetap di encounter ini" (`knownCaseFields`, `caseMismatch`, `src/lib/aadi/composer.ts`). Nilai yang tidak diketahui tidak pernah memblokir.
+- Chip dan pemilih `/` menandai jenis mode: AI untuk lima mode yang dianalisis AADI, Template untuk tiga belas mode yang hanya menyusun ulang teks (`modeKind`). Draf lokal menulis "Template … disusun dari teks Anda, tanpa analisis AI."
+
+Verifikasi: seluruh vitest 841 lulus, 23 dilewati (data privat); lint dan typecheck bersih; pemeriksaan browser `next dev` mode auth lokal pada 1440 dan 390 px. Jawaban AADI live dan layar Clerk tidak diuji di lingkungan cloud.
