@@ -88,8 +88,8 @@ Acceptance criteria (thresholds live in `cases.json`; raise them as scores rise,
 
 | Check | Criterion |
 | --- | --- |
-| Clinical-wording retrieval (15 cases) | gold document in the six passages for every case (recall@6 = 1), MRR >= 0.8 |
-| Lay-wording retrieval (8 cases) | recall@6 >= 0.75 |
+| Clinical-wording retrieval (15 cases) | gold document in the six passages for every case (recall@6 = 1), MRR >= 0.9 |
+| Lay-wording retrieval (8 cases) | recall@6 = 1 |
 | Therapy retrieval | the diagnosis's dose passage reaches the therapy evidence for all 12 diagnoses |
 | Privacy | the phone-number passage is never returned, even for a query written to match it |
 | Evidence gate | every case gets its expected status, in layer 1 with declared evidence and in layer 2 with retrieved evidence |
@@ -97,7 +97,7 @@ Acceptance criteria (thresholds live in `cases.json`; raise them as scores rise,
 
 The run writes `node_modules/.cache/theoracle-eval/report.json` (per-case ranks, latency, the top similarity of on-topic and off-topic queries) and, in GitHub Actions, the summary to the job page. The off-topic similarities are recorded, not asserted: retrieval has no similarity floor yet, and these numbers are the data for choosing one.
 
-The thresholds are provisional until the first CI run with the model; this document's author could not run layer 2 (no access to the model host from the authoring environment).
+First run with the model (GitHub Actions run 45874985015, 2026-11-26, about 24 s for the file): clinical recall@6 1 and MRR 1, lay recall@6 1 and MRR 0.938, therapy dose recall 1, every gate case as expected; the lowest top similarity of an on-topic case was 0.2496 and the highest of an off-topic query 0.1457. The thresholds above were set from that run.
 
 ## What is not tested
 

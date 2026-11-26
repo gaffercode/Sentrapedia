@@ -1,10 +1,10 @@
 {
   "notice": "SYNTHETIC TEST FIXTURE. Invented consultations without patient identity, scored against corpus.json by tests/theoracle-eval.test.ts. Expected outcomes describe retrieval and evidence-gate behaviour, not clinical correctness.",
   "thresholds": {
-    "note": "Provisional floors, calibrated on the first CI run with the pinned model. Raise them when the score rises; never lower one without Gaffer's word.",
+    "note": "Calibrated on the first CI run with the pinned model (2026-11-26, Actions run 45874985015: clinical recall@6 1 / MRR 1, lay recall@6 1 / MRR 0.938, therapy dose recall 1). Raise a floor when the score rises; never lower one without Gaffer's word.",
     "clinicalRecallAt6": 1,
-    "layRecallAt6": 0.75,
-    "clinicalMrr": 0.8,
+    "layRecallAt6": 1,
+    "clinicalMrr": 0.9,
     "therapyDoseRecall": 1
   },
   "retrieval": [
