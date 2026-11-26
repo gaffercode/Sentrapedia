@@ -23,10 +23,10 @@ const THERAPY_QUERY = "\npenatalaksanaan terapi dosis obat";
 const DOSE = /\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|iu)\b(?!\s*\/\s*(?:dl|l)\b)/i;
 // Relevance floor: a passage whose cosine similarity to the query is below this is not evidence for the case, so it is
 // never sent to the model. When no passage of the case search clears it, retrieval answers THEORACLE_NO_MATCH and no
-// analysis runs. PROVISIONAL (2026-11-26): set between the off-topic maximum (0.146) and the weakest on-topic case (0.250)
-// measured with the pinned model on the synthetic CI eval index; confirm with `npm run benchmark:oracle` (its relevanceFloor
-// section) on the real index before release.
-export const THEORACLE_MIN_SIMILARITY = 0.2;
+// analysis runs. Set to 0.35 by Gaffer on 2026-11-26 from `npm run benchmark:oracle` on the real index: weakest on-topic
+// best passage 0.3725 (88 eval queries), strongest off-topic 0.2597 (8 queries); 0.40 rejected two on-topic queries.
+// The on-topic margin is small (about 0.02): re-run the benchmark's relevanceFloor section after every index rebuild.
+export const THEORACLE_MIN_SIMILARITY = 0.35;
 const REVIEW_PROVENANCE = "Derived from official guidelines (KMK 1186/2022, Permenkes 5/2014, PNPK); clinically reviewed by Gaffer on 2026-10-23. Review status per entry is recorded in the knowledge SSOT (status.review_klinis).";
 
 export interface TheOracleManifest {
