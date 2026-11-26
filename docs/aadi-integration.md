@@ -60,3 +60,28 @@ under `AADI_DATA_POLICY=openai-standard-retention` and input must carry no patie
 packaging does not add production authentication or establish clinical accuracy.
 Historical inference timings predate this packaging change. See the dated
 verification report for fresh install/build/run evidence and remaining limits.
+
+## Analysis progress
+
+Since 2026-11-26 (Gaffer: "A + B: tahap nyata + reveal halus") the workspace shows the gateway's real stages while an
+analysis runs. Model text is deliberately not streamed: the engine returns one structured result per step, and the
+gateway and then the browser validate it and run the dose evidence gate before anything is shown. Streaming text
+would put unvalidated, ungated doses on screen.
+
+- Opt-in: the workspace sends `Accept: application/x-ndjson, application/json` to `POST /api/aadi`. Without that
+  header the reply is unchanged.
+- Streamed reply: status 200, `Content-Type: application/x-ndjson`, `Cache-Control: no-store, no-transform`,
+  `X-Accel-Buffering: no`; one JSON object per line.
+  - `{"type":"stage","stage":S,"state":"running"|"done"|"failed"}`, S one of `retrieve_dx`, `aadi_dx`, `retrieve_tx`,
+    `aadi_tx`, `gate`. Nothing else: no case text, output, cost, error codes or timings.
+  - Last line `{"type":"final","status":N,"body":B}`: exactly the status and body the plain reply would carry,
+    refusals included. The browser validates and gates B as before.
+- Code: `src/lib/aadi/stage-stream.ts` (writer and reader), `step(request, principal, onStage)` in
+  `src/lib/aadi/gateway.ts`, wait card `src/components/thinking-card.tsx`. Tests: `tests/aadi-stage-stream.test.ts`,
+  `tests/ui/thinking-card.test.tsx`.
+- Not yet verified: that Cloudflare Access in front of the beta server passes the lines through as they are written.
+  If it buffers, all stage lines arrive with the answer and the card behaves as before.
+
+On arrival the answer and the document pane come in through one view transition (`smooth(update, "arrive")`): the chat
+column, composer and header tools glide to their new width, and the analysis's sections rise in 60 ms apart. A fresh
+answer is scrolled to its top. Under reduced motion everything appears at once (`tests/ui/answer-arrival.test.tsx`).

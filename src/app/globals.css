@@ -312,6 +312,7 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .thinking-steps li[data-done="true"] { color: var(--color-text-muted); }
 .thinking-steps li[data-done="true"] svg { color: var(--workspace-accent-ink); }
 .thinking-steps li[data-done="false"] > span:last-child { font-weight: var(--weight-semibold); background: linear-gradient(90deg, var(--color-text-secondary) 0%, var(--color-text-primary) 45%, var(--color-text-secondary) 90%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: thinking-shimmer 1.6s linear infinite; }
+.thinking-skip { width: 12px; text-align: center; color: var(--color-text-muted); }
 .thinking-dot { width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center; }
 .thinking-dot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-action-primary); animation: thinking-pulse 1.2s ease-in-out infinite; }
 @keyframes thinking-pulse { 50% { opacity: .35; transform: scale(.7); } }

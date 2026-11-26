@@ -3,6 +3,7 @@
 import { ArrowDownToLine, ChevronDown, Command, FileText, Maximize2, Menu, Minimize2 } from "lucide-react";
 import { useEffect, useRef, type ComponentProps } from "react";
 import type { Encounter, WorkspaceAction } from "../lib/workspace";
+import type { StageEvent } from "../lib/aadi/stage-stream";
 import { Composer } from "./composer";
 import { MessageCard } from "./message-card";
 import { ThinkingCard } from "./thinking-card";
@@ -49,7 +50,7 @@ export function QueueNotice({ position }: { position?: number | null }) {
   return position && position >= 1 ? <p className="panel-caption" role="status">Posisi antrean: {position}</p> : null;
 }
 
-export function Conversation({ encounter, pendingQuestion, queuePosition, dispatch, onToast, onReuse, onCancel, onOpenDocument }: { encounter?: Encounter; pendingQuestion: string | null; queuePosition?: number | null; dispatch: (action: WorkspaceAction) => void; onToast: (text: string, tone?: "error") => void; onReuse: (content: string) => void; onCancel: () => void; onOpenDocument: (id: string) => void }) {
+export function Conversation({ encounter, pendingQuestion, queuePosition, stages, dispatch, onToast, onReuse, onCancel, onOpenDocument }: { encounter?: Encounter; pendingQuestion: string | null; queuePosition?: number | null; stages?: readonly StageEvent[]; dispatch: (action: WorkspaceAction) => void; onToast: (text: string, tone?: "error") => void; onReuse: (content: string) => void; onCancel: () => void; onOpenDocument: (id: string) => void }) {
   const end = useRef<HTMLDivElement>(null);
   const conversation = useRef<HTMLDivElement>(null);
   const conversationInner = useRef<HTMLDivElement>(null);
@@ -82,7 +83,7 @@ export function Conversation({ encounter, pendingQuestion, queuePosition, dispat
   return <div className="conversation" ref={conversation} onScroll={(event) => { const box = event.currentTarget; stickToBottom.current = box.scrollHeight - box.scrollTop - box.clientHeight < 80; }} aria-label="Percakapan Encounter">
     <div className="conversation-inner" ref={conversationInner}>
       {encounter?.messages.map((message) => <MessageCard key={message.id} message={message} onEdit={(content) => dispatch({ type: "message.edit", encounterId: encounter.id, messageId: message.id, content })} onToast={onToast} onReuse={onReuse} onOpenDocument={onOpenDocument}/>)}
-      {pendingQuestion !== null && <><div className="user-message"><div>{pendingQuestion}</div></div><ThinkingCard onCancel={onCancel}/><QueueNotice position={queuePosition}/></>}
+      {pendingQuestion !== null && <><div className="user-message"><div>{pendingQuestion}</div></div><ThinkingCard onCancel={onCancel} stages={stages}/><QueueNotice position={queuePosition}/></>}
       <div ref={end}/>
     </div>
   </div>;

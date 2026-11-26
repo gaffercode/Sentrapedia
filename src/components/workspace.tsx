@@ -26,6 +26,7 @@ import { paneDocuments } from "../lib/document-pane";
 import type { AadiAnalysis } from "../lib/aadi/contract";
 import { caseMismatch, composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, knownCaseFields, readCaseFields, type CaseFields } from "../lib/aadi/composer";
 import { requestAadiAnalysis } from "../lib/aadi/client";
+import type { StageEvent } from "../lib/aadi/stage-stream";
 import { smooth } from "./smooth";
 import { useMediaQuery, useToast, useWorkspacePersistence } from "./workspace-hooks";
 import { WorkspaceUnlock } from "./workspace-unlock";
@@ -77,6 +78,8 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const failedIntoNew = useRef(false);
   // The question being analysed: shown at once as the user's message, saved only with its answer.
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  // The pipeline stages the gateway has reported for the running analysis, oldest first.
+  const [stages, setStages] = useState<StageEvent[]>([]);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const pendingText = useRef<string | null>(null);
   const analysisController = useRef<AbortController | null>(null);
@@ -105,7 +108,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     // A cancelled question goes back into the composer, whatever cancelled it.
     if (pendingText.current) setPrompt(pendingText.current);
     pendingText.current = null;
-    setBusy(false); setAnalysisError(""); setPendingQuestion(null);
+    setBusy(false); setAnalysisError(""); setPendingQuestion(null); setStages([]);
   }, []);
   // A mode or template picked while an analysis runs leaves it running: the request carries the mode it was sent with,
   // and the chips are disabled while busy; the / picker and the Command Center must behave the same (review, 2026-11-04).
@@ -151,13 +154,13 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   async function analyzeMain(text: string, selectedMode: ModeId, current: Encounter, isNew: boolean, casePatient?: Patient) {
     if (analysisController.current) return;
     const controller = new AbortController(); analysisController.current = controller;
-    setBusy(true); setAnalysisError(""); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setPrompt("");
+    setBusy(true); setAnalysisError(""); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setStages([]); setPrompt("");
     // The home composer gives way to the chat composer; keep typing where the reader is.
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".chat-composer textarea")?.focus());
-    const finish = () => { if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); pendingText.current = null; } };
+    const finish = () => { if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); setStages([]); pendingText.current = null; } };
     let arriving = false;
     try {
-      const analysis = await requestAadiAnalysis(composerCase(text, current.context, casePatient, caseFields), { signal: controller.signal, onQueuePosition: place => { if (analysisController.current === controller) setQueuePosition(place); } });
+      const analysis = await requestAadiAnalysis(composerCase(text, current.context, casePatient, caseFields), { signal: controller.signal, onQueuePosition: place => { if (analysisController.current === controller) setQueuePosition(place); }, onStage: event => { if (analysisController.current === controller) setStages(list => [...list, event]); } });
       if (controller.signal.aborted || analysisController.current !== controller) return;
       // The wait card leaves and the answer (with its document pane) arrives in one cross-fade, so the chat column's
       // change of width reads as one soft step instead of a jump. A cancel in the frame before the fade still wins.
@@ -243,7 +246,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
       <div className="workspace-body" data-split={split || undefined}>
         {!hasMessages ? <HomeView name={state.settings.name ?? ""} headline={headlineFor(visit)} pill={state.settings.environment ?? "Layanan primer"} composer={composerProps}/> : <>
           <div className="chat-column">
-            <Conversation encounter={encounter} pendingQuestion={pendingQuestion} queuePosition={queuePosition} dispatch={dispatch} onToast={notify} onReuse={updatePrompt} onCancel={cancelAnalysis} onOpenDocument={openDocument}/>
+            <Conversation encounter={encounter} pendingQuestion={pendingQuestion} queuePosition={queuePosition} stages={stages} dispatch={dispatch} onToast={notify} onReuse={updatePrompt} onCancel={cancelAnalysis} onOpenDocument={openDocument}/>
             <ChatComposer composer={composerProps}/>
           </div>
           {split && paneFor(() => smooth(() => setPane({ open: false })))}
