@@ -26,7 +26,7 @@ const fixtureChunks = [
   chunk("A2", "PNPK Pneumonia.md", "Amoksisilin 3 x 500 mg selama 5 hari.", [0.9, 0.1, 0]),
   chunk("A3", "PNPK Pneumonia.md", "Bagian ketiga yang tidak boleh lolos.", [0.85, 0.15, 0]),
   chunk("C1", "Kontak.md", "Hubungi 081234567890 untuk konsultasi.", [0.95, 0.05, 0]),
-  chunk("B1", "PNPK Tuberkulosis.md", "Batuk lebih dari dua minggu.", [0.2, 0.98, 0]),
+  chunk("B1", "PNPK Tuberkulosis.md", "Batuk lebih dari dua minggu.", [0.15, 0.99, 0]),
   chunk("D1", "PPK Fasyankes Primer.pdf", "Penatalaksanaan pneumonia: amoksisilin 3 x 500 mg.", [0, 0.3, 1]),
   chunk("D2", "PPK Fasyankes Primer.pdf", "Terapi 500 mg, hubungi 081234567890.", [0, 0, 1]),
 ];
@@ -138,7 +138,7 @@ describe("TheOracle vector grounding", () => {
   });
 
   describe("relevance floor", () => {
-    // Query [1, 0, 0] against the fixture: A1 1.0, A2 0.994, B1 0.2, D1 0.0 (C1 and D2 fail the privacy filter).
+    // Query [1, 0, 0] against the fixture: A1 1.0, A2 0.994, B1 0.15, D1 0.0 (C1 and D2 fail the privacy filter).
     it("sends only passages at or above the floor, and swaps in no dose passage that is below it", async () => {
       const bundle = await retrieveTheOracleGrounding(caseFor("batuk"), { indexDir: fixtureIndex(), embedder: fakeEmbedder([]) });
       expect(validTheOracleGrounding(bundle)).toBe(true);
