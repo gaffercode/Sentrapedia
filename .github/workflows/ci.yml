@@ -22,6 +22,9 @@ jobs:
     timeout-minutes: 45
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      # The public synthetic TheOracle eval (tests/theoracle-eval.test.ts) embeds its corpus with the pinned model that
+      # postinstall downloads; "required" makes a missing model fail the run instead of skipping the eval.
+      SENTRAPEDIA_ORACLE_EVAL: required
     steps:
       # LFS holds the site PNGs and the video and WebP media. The repository holds no private data (2026-11-18):
       # the tests that need the TheOracle index, the catalogue or the ICD-10 list skip, and the build runs on samples.
