@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { freshAnswer, freshAnswerMs, markRevealed } from "../src/lib/fresh-answer";
 import { localDraftMessages, restoreFromStorage, shortcutFor } from "../src/lib/workspace-session";
-import { initialWorkspace, storageKey, unreadableKey, type Message, type Patient, type Settings } from "../src/lib/workspace";
+import { emptyWorkspace, initialWorkspace, storageKey, unreadableKey, type Message, type Patient, type Settings } from "../src/lib/workspace";
 import type { PersonalTemplate } from "../src/lib/workflow";
 
 const key = (key: string, mods: { ctrl?: boolean; meta?: boolean } = {}) => ({ key, ctrlKey: !!mods.ctrl, metaKey: !!mods.meta });
@@ -31,7 +31,7 @@ describe("restoring the workspace from browser storage", () => {
   it("keeps unreadable saved text under its own key, offers it for download and says so", () => {
     const items: Record<string, string> = { [storageKey]: "{broken" };
     const restored = restoreFromStorage(storage(items));
-    expect(restored.workspace).toEqual(initialWorkspace);
+    expect(restored.workspace).toEqual(emptyWorkspace);
     expect(restored.unreadable).toBe("{broken");
     expect(items[unreadableKey]).toBe("{broken");
     expect(restored.notice).toContain("tidak dapat dibaca");

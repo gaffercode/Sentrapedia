@@ -27,6 +27,12 @@ export function withOpening(prompt: string, mode: ModeId): string {
   const current = modes.map((item) => item.opening).filter((text) => prompt.startsWith(text)).sort((a, b) => b.length - a.length)[0];
   return opening + (current ? prompt.slice(current.length).replace(/^\r?\n/, "") : prompt);
 }
+/** The case as sent: a mode's opening sentence at the very start (put there by a chip) is an instruction, not case text,
+ *  so it never reaches the document or AADI (UI audit P0 #2). Text elsewhere is left as written. */
+export function stripOpening(prompt: string): string {
+  const current = modes.map((item) => item.opening).filter((text) => prompt.startsWith(text)).sort((a, b) => b.length - a.length)[0];
+  return (current ? prompt.slice(current.length) : prompt).trim();
+}
 // The headline rotates through the intent groups, one per visit.
 export function headlineFor(visit: number): string {
   const headlines = intentGroups.map((group) => group.headline);

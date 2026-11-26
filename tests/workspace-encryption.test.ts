@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createLock, isEnvelope, sealWorkspace, WrongPassphrase } from "../src/lib/workspace-crypto";
 import { restoreEncrypted } from "../src/lib/workspace-session";
 import { saveEncryptedWorkspace } from "../src/lib/workflow";
-import { initialWorkspace } from "../src/lib/workspace";
+import { emptyWorkspace, initialWorkspace } from "../src/lib/workspace";
 
 // Restore and save of an encrypted workspace (docs/specs/2026-11-19-workspace-encryption-design.md).
 const keys = { storageKey: "w", unreadableKey: "w:unreadable" };
@@ -32,6 +32,7 @@ describe("restoreEncrypted", () => {
     const restored = await restoreEncrypted(storage, keys, "passphrase-uji-1");
     expect(restored.unreadable).toBe(sealed);
     expect(restored.notice).toContain("tidak dapat dibaca");
+    expect(restored.workspace).toEqual(emptyWorkspace);
     for (const value of storage.data.values()) { expect(value).not.toContain("rahasia"); expect(isEnvelope(value)).toBe(true); }
   });
 });

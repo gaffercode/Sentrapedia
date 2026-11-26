@@ -145,6 +145,10 @@ h1 span { white-space: normal; }
 .composer-analysis { margin-top: 14px; text-align: left; font-size: var(--text-xs); line-height: var(--leading-relaxed); color: var(--color-text-secondary); }
 .composer-toolbar { margin-top: 7px; display: flex; align-items: center; justify-content: space-between; gap: 7px; }
 .composer-tools-left, .composer-tools-right { display: flex; align-items: center; gap: 8px; }
+/* The left group gives way first (its status line ellipsizes), so the toolbar keeps one row in the split chat column. */
+.composer-tools-left { flex: 1 1 0; min-width: 0; }
+.composer-tools-left .button { flex-shrink: 0; }
+.composer-tools-right { flex-shrink: 0; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--color-border-subtle); min-height: 36px; padding: 8px 11px; border-radius: var(--radius); background: var(--workspace-white); font-size: var(--text-base); color: var(--color-text-secondary); line-height: 1.125rem; white-space: nowrap; }
 label.button { cursor: pointer; }
 label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus); outline-offset: 2px; }
@@ -197,6 +201,7 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .context-status { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); color: var(--color-text-muted); padding-left: 2px; }
 .context-status .listening { color: var(--workspace-accent-ink); }
 .action-chip { display: flex; align-items: center; gap: 7px; flex-shrink: 0; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); background: var(--workspace-white); padding: 8px 11px; font-size: var(--text-sm); height: 36px; white-space: nowrap; }
+.action-chip .chip-kind { font-size: var(--text-xs); color: var(--color-text-secondary); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); padding: 0 5px; line-height: 16px; }
 .action-chip:hover { border-color: var(--workspace-ink-faint); background: var(--color-background-surface); }
 .action-chip.active { color: var(--workspace-accent-ink); border-color: color-mix(in srgb, var(--workspace-focus), transparent 45%); background: var(--workspace-accent-soft); }
 .home-bottom { width: min(780px, calc(100% - 48px)); flex-shrink: 0; margin: 18px auto 16px; text-align: left; }
@@ -328,7 +333,6 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .message-actions .icon-button { color: var(--color-text-secondary); }
 .text-button { padding: 0; min-height: 24px; display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--color-text-muted); }
 .text-button:hover { color: var(--workspace-accent-ink); }
-.evidence-handoff { display: grid; gap: 7px; margin: 20px 0 0; background: var(--workspace-accent-soft); border: 1px solid var(--color-border-subtle); padding: 15px; border-radius: var(--radius); color: var(--workspace-accent-ink); font-size: var(--text-sm); line-height: var(--leading-relaxed); }
 .chat-composer { width: min(780px, calc(100% - 48px)); flex-shrink: 0; margin: 8px auto 8px; }
 
 
@@ -555,7 +559,9 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 /* Glass's shape: the composer is a rounded card; under it one row of mode chips scrolls sideways instead of wrapping. */
 .composer-area { position: relative; }
 .composer .button, .composer .model-select select, .composer .icon-tool { border-radius: var(--radius-control); }
-.chip-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 2px 4px; }
+.chip-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 2px 4px; mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+/* The fade at the right edge says the row scrolls; the last chip clears it. */
+.chip-row::after { content: ""; flex: 0 0 24px; }
 .chip-row::-webkit-scrollbar { display: none; }
 .chip-row .action-chip { height: 32px; padding: 0 12px; border: 1px solid rgba(31, 31, 31, .1); border-radius: var(--radius-control); background: var(--workspace-white); color: var(--color-text-primary); font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .chip-row .action-chip:hover:not(:disabled) { background: var(--color-background-surface); border-color: var(--workspace-ink-faint); }
@@ -655,6 +661,9 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 @keyframes headline-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 1201px) and (max-width: 1460px) {
   .composer-toolbar { flex-wrap: wrap; gap: 9px; }
+  /* Beside the document pane the chat column is narrow: Scribe and Konteks keep their icon and accessible name, so the
+     toolbar stays one row and the conversation keeps its height. */
+  .workspace-body[data-split="true"] .chat-composer .button-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 760px) {
   .home-headline { min-height: 140px; }

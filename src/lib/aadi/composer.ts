@@ -1,5 +1,5 @@
 import type { ModeId } from "../drafts";
-import { newId, type Message, type Patient } from "../workspace";
+import { isSeedPatientNote, newId, type Encounter, type Message, type Patient } from "../workspace";
 import type { ReviewItem } from "../workflow";
 import { emptyCase, type AadiAnalysis } from "./contract";
 import { aadiMessage } from "./presentation";
@@ -7,6 +7,12 @@ import { aadiMessage } from "./presentation";
 export function composerUsesAadi(mode: ModeId, personalTemplate: boolean): boolean {
   return !personalTemplate && (["question", "ddx", "workup", "refer", "icd10"] as ModeId[]).includes(mode);
 }
+
+/** What a mode is to the doctor: an AADI analysis, or a local template that only reorganises the typed text (UI audit P0 #4). */
+export function modeKind(mode: ModeId, personalTemplate = false): "ai" | "template" {
+  return composerUsesAadi(mode, personalTemplate) ? "ai" : "template";
+}
+export const modeKindLabel = { ai: "AI", template: "Template" } as const;
 
 // The composer's case strip (Gaffer, 2026-10-20: "Setuju semua"): age, sex and vitals as typed, so they reach the case's
 // structured fields instead of staying inside the complaint text.
@@ -61,6 +67,25 @@ export function readCaseFields(text: string): Partial<CaseFields> {
   return found;
 }
 
+type KnownCase = Pick<Partial<CaseFields>, "age" | "sex">;
+/** What the encounter already says about who the case is: the saved patient first, then the first case typed into it. */
+export function knownCaseFields(encounter: Pick<Encounter, "messages">, patient?: Pick<Patient, "age" | "sex">): KnownCase {
+  const first = encounter.messages.find((message) => message.role === "user");
+  const typed = first ? readCaseFields(first.content) : {};
+  const sex = patient?.sex.trim().toLowerCase();
+  const age = patient && ageOf(patient.age) !== undefined ? patient.age.trim() : typed.age;
+  const known: KnownCase = { age, sex: sex === "male" || sex === "m" ? "M" : sex === "female" || sex === "f" ? "F" : typed.sex };
+  return Object.fromEntries(Object.entries(known).filter(([, value]) => value)) as KnownCase;
+}
+
+/** A typed case that names a different sex, or an age more than a year apart, from what the encounter already knows
+ *  (UI audit P0 #3). Anything unknown on either side is never a mismatch. */
+export function caseMismatch(typed: Partial<CaseFields>, known: KnownCase): "sex" | "age" | null {
+  if (typed.sex && known.sex && typed.sex !== known.sex) return "sex";
+  const a = typed.age ? ageOf(typed.age) : undefined, b = known.age ? ageOf(known.age) : undefined;
+  return a !== undefined && b !== undefined && Math.abs(a - b) > 1 ? "age" : null;
+}
+
 export function composerCase(prompt: string, context: string, patient?: Pick<Patient, "age" | "sex" | "notes"> & Partial<Pick<Patient, "name" | "id">>, fields?: CaseFields) {
   const data = emptyCase();
   data.chiefComplaint = prompt.trim();
@@ -68,7 +93,7 @@ export function composerCase(prompt: string, context: string, patient?: Pick<Pat
   if (/^\d{1,3}(?:\.\d+)?$/.test(age) && Number(age) <= 130) data.demographics.ageYears = Number(age);
   const sex = patient?.sex.trim().toLowerCase();
   data.demographics.sex = sex === "male" || sex === "m" ? "M" : sex === "female" || sex === "f" ? "F" : "unknown";
-  const history = [context.trim() && `Konteks Encounter\n${context}`, patient?.notes.trim() && `Catatan kasus\n${patient.notes}`].filter(Boolean).join("\n\n");
+  const history = [context.trim() && `Konteks Encounter\n${context}`, patient?.notes.trim() && !isSeedPatientNote(patient.notes) && `Catatan kasus\n${patient.notes}`].filter(Boolean).join("\n\n");
   if (history) data.anamnesis.freeText = history;
   // A value in the strip wins over the saved patient; an unreadable one is not sent.
   if (fields) {

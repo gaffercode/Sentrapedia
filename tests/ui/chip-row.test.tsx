@@ -18,10 +18,16 @@ const composerProps = (overrides: Partial<ComponentProps<typeof Composer>> = {})
 });
 
 describe("chip row", () => {
+  it("template chips carry a Template badge and AI chips an AI badge", () => {
+    render(<ChipRow mode="question" busy={false} onChip={noop}/>);
+    expect(screen.getByRole("button", { name: "Catatan Klinis (SOAP)" }).querySelector(".chip-kind")?.textContent).toBe("Template");
+    expect(screen.getByRole("button", { name: "Diagnosis Banding (DDx)" }).querySelector(".chip-kind")?.textContent).toBe("AI");
+  });
+
   it("renders the shortlist as one scrollable row and marks the active mode", () => {
     render(<ChipRow mode="ddx" busy={false} onChip={noop}/>);
     const chips = screen.getAllByRole("button");
-    expect(chips.map((chip) => chip.textContent)).toEqual(chipShortlist.map((id) => chipLabel(id)));
+    expect(chips.map((chip) => chip.querySelector("span")?.textContent)).toEqual(chipShortlist.map((id) => chipLabel(id)));
     expect(screen.getByRole("button", { name: "Diagnosis Banding (DDx)" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("group", { name: "Mode" }).classList.contains("chip-row")).toBe(true);
   });
@@ -64,9 +70,9 @@ describe("chip row", () => {
     render(<ChipRow mode="icd10" busy={false} onChip={noop}/>);
     const chips = screen.getAllByRole("button");
     expect(chips).toHaveLength(chipShortlist.length + 1);
-    expect(chips[0].textContent).toBe("Pengodean Diagnosis (ICD-10)");
+    expect(chips[0].querySelector("span")?.textContent).toBe("Pengodean Diagnosis (ICD-10)");
     expect(chips[0].getAttribute("aria-pressed")).toBe("true");
-    expect(chips.slice(1).map((chip) => chip.textContent)).toEqual(chipShortlist.map((id) => chipLabel(id)));
+    expect(chips.slice(1).map((chip) => chip.querySelector("span")?.textContent)).toEqual(chipShortlist.map((id) => chipLabel(id)));
     expect(chips.slice(1).every((chip) => chip.getAttribute("aria-pressed") === "false")).toBe(true);
   });
 
@@ -74,10 +80,30 @@ describe("chip row", () => {
     const templates = [{ id: "t1", name: "QA SOAP pribadi", mode: "clinic" as const, sections: [], instructions: "" }];
     render(<ChipRow mode="clinic" templateKey="template:t1" templates={templates} busy={false} onChip={noop}/>);
     const chips = screen.getAllByRole("button");
-    expect(chips[0].textContent).toBe("QA SOAP pribadi");
+    expect(chips[0].querySelector("span")?.textContent).toBe("QA SOAP pribadi");
+    expect(chips[0].querySelector(".chip-kind")?.textContent).toBe("Template");
     expect(chips[0].getAttribute("aria-pressed")).toBe("true");
     expect(chips[0].getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByRole("button", { name: "Catatan Klinis (SOAP)" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("Format keluaran shows only for template modes, where it changes the draft", () => {
+    const { rerender } = render(<Composer {...composerProps({ mode: "question", aadiEnabled: true })}/>);
+    expect(screen.queryByLabelText("Format keluaran")).toBeNull();
+    rerender(<Composer {...composerProps({ mode: "clinic", aadiEnabled: false })}/>);
+    expect(screen.getByLabelText("Format keluaran")).toBeTruthy();
+  });
+
+  it("sending is the one primary action; Mulai Scribe is secondary", () => {
+    render(<Composer {...composerProps({ prompt: "demam 3 hari" })}/>);
+    expect(screen.getByRole("button", { name: /Mulai Scribe/ }).classList.contains("primary")).toBe(false);
+  });
+
+  it("the slash picker names each mode's kind", () => {
+    render(<Composer {...composerProps({ prompt: "/" })}/>);
+    const picker = within(screen.getByRole("listbox", { name: "Pilih templat" }));
+    expect(picker.getByRole("option", { name: /Catatan Klinis \(SOAP\)/ }).textContent).toContain("Template");
+    expect(picker.getByRole("option", { name: /Diagnosis Banding \(DDx\)/ }).textContent).toContain("AI");
   });
 
   it("the slash picker lists every mode under Mode and personal templates under Templat pribadi", () => {

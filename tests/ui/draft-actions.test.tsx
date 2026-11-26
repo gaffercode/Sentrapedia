@@ -67,7 +67,7 @@ describe("local draft when the analysis fails", () => {
     expect(screen.getByRole("button", { name: "Coba lagi" })).toBeTruthy();
     expect(textarea().value).toBe(complaint);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Susun draf SOAP lokal" })); });
-    expect(await screen.findByText("Draf Catatan Klinis (SOAP) disusun.")).toBeTruthy();
+    expect(await screen.findByText("Template Catatan Klinis (SOAP) disusun dari teks Anda, tanpa analisis AI.")).toBeTruthy();
     expect(screen.queryByText(failure)).toBeNull();
     expect(textarea().value).toBe("");
     expect(screen.queryByRole("group", { name: "Usia, jenis kelamin, dan tanda vital" })).toBeNull();
