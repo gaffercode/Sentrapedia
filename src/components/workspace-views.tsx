@@ -3,6 +3,7 @@
 import { ArrowDownToLine, ChevronDown, Command, FileText, Maximize2, Menu, Minimize2 } from "lucide-react";
 import { useEffect, useRef, type ComponentProps } from "react";
 import type { Encounter, WorkspaceAction } from "../lib/workspace";
+import type { StageEvent } from "../lib/aadi/stage-stream";
 import { Composer } from "./composer";
 import { MessageCard } from "./message-card";
 import { ThinkingCard } from "./thinking-card";
@@ -43,26 +44,35 @@ export function HomeFooter({ onLegal }: { onLegal: (label: string) => void }) {
   </footer></div>;
 }
 
-// Like a chat: a growing conversation keeps the view at the bottom unless the reader has scrolled up; an answer that
-// types out is read from its top instead.
 // The person's place in the analysis line while their case waits for a slot (src/lib/aadi/queue.ts). Nothing is
 // shown once the analysis runs (0) or when no place is known.
 export function QueueNotice({ position }: { position?: number | null }) {
   return position && position >= 1 ? <p className="panel-caption" role="status">Posisi antrean: {position}</p> : null;
 }
 
-export function Conversation({ encounter, pendingQuestion, queuePosition, dispatch, onToast, onReuse, onCancel, onOpenDocument }: { encounter?: Encounter; pendingQuestion: string | null; queuePosition?: number | null; dispatch: (action: WorkspaceAction) => void; onToast: (text: string, tone?: "error") => void; onReuse: (content: string) => void; onCancel: () => void; onOpenDocument: (id: string) => void }) {
+export function Conversation({ encounter, pendingQuestion, queuePosition, stages, dispatch, onToast, onReuse, onCancel, onOpenDocument }: { encounter?: Encounter; pendingQuestion: string | null; queuePosition?: number | null; stages?: readonly StageEvent[]; dispatch: (action: WorkspaceAction) => void; onToast: (text: string, tone?: "error") => void; onReuse: (content: string) => void; onCancel: () => void; onOpenDocument: (id: string) => void }) {
   const end = useRef<HTMLDivElement>(null);
   const conversation = useRef<HTMLDivElement>(null);
   const conversationInner = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
-  // A new turn scrolls the bottom into view unless the reader has scrolled up; afterwards a growing conversation keeps
-  // to the bottom. The answer itself lives in the pane, so nothing types in the chat any more.
+  const shownCount = useRef<number | null>(null);
+  const shownEncounter = useRef<string | undefined>(undefined);
+  // Like a chat, a new question or an opened encounter scrolls the bottom into view and a growing conversation keeps
+  // to the bottom. A fresh answer is read from its top instead: on a phone the bottom would cut its first lines off.
+  const encounterId = encounter?.id;
+  const count = encounter?.messages.length ?? 0;
+  const lastRole = encounter?.messages.at(-1)?.role;
   useEffect(() => {
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    // The same conversation grew by an answer; a new encounter's first answer counts too (it had no id while waiting).
+    const sameConversation = shownCount.current !== null && (shownEncounter.current === encounterId || shownEncounter.current === undefined);
+    const answered = sameConversation && count > (shownCount.current ?? 0) && lastRole === "assistant";
+    shownCount.current = count; shownEncounter.current = encounterId;
+    const answer = answered ? [...conversationInner.current?.querySelectorAll<HTMLElement>(".assistant-message") ?? []].at(-1) : undefined;
+    if (answer) { stickToBottom.current = false; answer.scrollIntoView({ behavior, block: "start" }); return; }
     stickToBottom.current = true;
     end.current?.scrollIntoView({ behavior, block: "nearest" });
-  }, [encounter?.messages.length, pendingQuestion]);
+  }, [encounterId, count, lastRole, pendingQuestion]);
   useEffect(() => {
     const inner = conversationInner.current, box = conversation.current;
     if (!inner || !box) return;
@@ -73,7 +83,7 @@ export function Conversation({ encounter, pendingQuestion, queuePosition, dispat
   return <div className="conversation" ref={conversation} onScroll={(event) => { const box = event.currentTarget; stickToBottom.current = box.scrollHeight - box.scrollTop - box.clientHeight < 80; }} aria-label="Percakapan Encounter">
     <div className="conversation-inner" ref={conversationInner}>
       {encounter?.messages.map((message) => <MessageCard key={message.id} message={message} onEdit={(content) => dispatch({ type: "message.edit", encounterId: encounter.id, messageId: message.id, content })} onToast={onToast} onReuse={onReuse} onOpenDocument={onOpenDocument}/>)}
-      {pendingQuestion !== null && <><div className="user-message"><div>{pendingQuestion}</div></div><ThinkingCard onCancel={onCancel}/><QueueNotice position={queuePosition}/></>}
+      {pendingQuestion !== null && <><div className="user-message"><div>{pendingQuestion}</div></div><ThinkingCard onCancel={onCancel} stages={stages}/><QueueNotice position={queuePosition}/></>}
       <div ref={end}/>
     </div>
   </div>;

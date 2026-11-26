@@ -7,6 +7,7 @@ import { syncPrincipal } from "../../../lib/sync/principal";
 import { analysisLimits, analysisQueue } from "../../../lib/aadi/server-guards";
 import { parseDailyQuota } from "../../../lib/aadi/limits";
 import { loadCatalogue } from "../../../lib/theoracle-catalogue";
+import { stageStreamType, streamAnalysis } from "../../../lib/aadi/stage-stream";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,5 +44,8 @@ export async function POST(request: Request) {
   // The evidence gate reads the catalogue index; loading it here keeps a broken data folder from failing silently later.
   loadCatalogue();
   // The verified session is the principal the line, the daily quota and the budget count against.
-  return gateway.step(request, syncPrincipal(access.userId) ?? undefined);
+  const principal = syncPrincipal(access.userId) ?? undefined;
+  // A workspace that asks for progress gets each stage as it happens, then the same reply as its last line.
+  if (request.headers.get("accept")?.includes(stageStreamType)) return streamAnalysis(onStage => gateway.step(request, principal, onStage));
+  return gateway.step(request, principal);
 }
