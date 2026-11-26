@@ -174,3 +174,16 @@ Lanjutan audit (#5, #6, #9-#12), status REVIEW:
 - Catatan usang "Hubungkan AI Clinical" pada jawaban pertanyaan dihapus.
 
 Verifikasi: vitest 849 lulus, 23 dilewati (data privat); lint dan typecheck bersih; tinggi toolbar diukur di browser pada 1440, 1210, 1024 (satu baris) dan 390 px (dua baris, sesuai desain HP).
+
+## Design audit fixes (2026-11-27)
+
+From the 2026-11-26 design audit (recommendations 1-4; token migration waits for the brand decision). All in `src/app/globals.css` unless named.
+
+- Mode chips wrap at 760px and below, so every chip is visible on a phone; wider screens keep the scrolling row with its fade.
+- An unconfigured analysis service reads "Layanan analisis belum tersambung. Pertanyaan Anda tetap tersimpan; …" (`src/lib/aadi/gateway.ts`), and the composer shows the message and its recovery actions ("Coba lagi", "Susun draf SOAP lokal") as separate elements, the actions as buttons (`src/components/composer.tsx`).
+- The composer and feedback fields, links and selects carry the 2px `--workspace-focus` ring.
+- At 760px and below sidebar rows, encounter rows, icon buttons and the feedback field reach `--target-min` (44px). `--submenu-row` sets the encounter row height, its tree line and the active-branch indicator together (`src/components/sidebar-submenu.tsx`).
+- Above 760px the home composer's `/` picker opens below it; on a phone and in chat it opens upward.
+- At 600px and below dialog actions stack full width in DOM order, so focus order matches what is seen.
+
+Tests: `tests/ui/design-audit-fixes.test.tsx`, plus the NOT_CONFIGURED wording in `tests/aadi-guardrails.test.ts`. Browser check at 390/768/1440 px with Playwright and axe-core (0 violations on the audited screens).

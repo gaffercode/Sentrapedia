@@ -98,7 +98,7 @@ export function createAadiGateway(options: Options = {}) {
       if (!payload || typeof payload !== "object" || !("case" in payload) || Object.keys(payload).some(k => k !== "case") || !validCase(payload.case)) return failure("INPUT", "Lengkapi kasus terstruktur.", 400);
       const caseData = payload.case;
       if (caseContainsIdentity(caseData)) return failure("PII_DETECTED", "Hapus pola identitas pasien dari keluhan, catatan, dan konteks sebelum mengirim. Gunakan kode kasus tanpa nama, nomor identitas, kontak, atau alamat.", 400);
-      if (!base || !token) return failure("NOT_CONFIGURED", "Token koneksi layanan analisis belum dikonfigurasi pada server workspace.", 503);
+      if (!base || !token) return failure("NOT_CONFIGURED", "Layanan analisis belum tersambung. Pertanyaan Anda tetap tersimpan; coba lagi nanti atau hubungi pengelola workspace.", 503);
       // With a queue the caller waits for a slot and can read their place (GET /api/aadi/queue); without one the
       // gateway keeps its one-at-a-time refusal. The quota and the budget are charged only once a slot is held, so
       // a place given up in line costs the person nothing. The request timer below starts after both.
