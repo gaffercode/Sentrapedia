@@ -25,7 +25,7 @@ function media(query: string) {
     from = i;
   }
 }
-/** Declarations of the rules whose selector list contains `selector`, in `source` (top level of globals.css by default). */
+/** Declarations of the rules whose selector list contains `selector`, in `source` (all of globals.css by default, media blocks included). */
 function rules(selector: string, source = css) {
   return [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
     .filter(([, selectors]) => selectors.split(",").map((s) => s.trim()).includes(selector))
@@ -92,6 +92,8 @@ describe("touch targets on a phone reach --target-min (audit S1)", () => {
     // Encounter rows: one row height drives the row, its tree line and the active-branch indicator, so they stay aligned.
     expect(rules(":root", phone)).toMatch(/--submenu-row:\s*var\(--target-min\)/);
     expect(rules(".submenu-item")).toMatch(/height:\s*var\(--submenu-row\)/);
+    // The grey elbow ends at the row centre, where the active branch ends too.
+    expect(rules(".submenu-item::after")).toMatch(/top:\s*calc\(var\(--submenu-row\) \/ 2 - 8px\)/);
   });
   it("draws the active branch from the row height, not a fixed 34px", async () => {
     const { SidebarSubmenu } = await import("../../src/components/sidebar-submenu");

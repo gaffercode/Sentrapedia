@@ -439,7 +439,7 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .submenu-section[data-open="true"] .submenu-item { opacity: 1; transform: translateY(0); transition-delay: calc(40ms + min(var(--item-order), 8) * 35ms); }
 .submenu-item::before { content: ""; position: absolute; left: -10px; top: 0; height: 100%; border-left: 1px solid var(--color-border-subtle); }
 .submenu-item:last-child::before { height: calc(var(--submenu-row) / 2); }
-.submenu-item::after { content: ""; position: absolute; left: -10px; top: 9px; width: 9px; height: 8px; border-left: 1px solid var(--color-border-subtle); border-bottom: 1px solid var(--color-border-subtle); border-bottom-left-radius: var(--radius); pointer-events: none; }
+.submenu-item::after { content: ""; position: absolute; left: -10px; top: calc(var(--submenu-row) / 2 - 8px); width: 9px; height: 8px; border-left: 1px solid var(--color-border-subtle); border-bottom: 1px solid var(--color-border-subtle); border-bottom-left-radius: var(--radius); pointer-events: none; }
 .submenu-item > button:first-child { min-width: 0; flex: 1; height: 32px; display: flex; align-items: center; gap: 7px; padding: 6px; border-radius: var(--radius); text-align: left; font-size: var(--text-sm); }
 .submenu-item > button:first-child > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .submenu-item:hover > button:first-child, .submenu-item[data-active="true"] > button:first-child { background: var(--workspace-accent-soft); color: var(--workspace-accent-ink); }
