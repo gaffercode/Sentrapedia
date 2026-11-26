@@ -1,5 +1,5 @@
 import type { ModeId } from "../drafts";
-import { newId, type Message, type Patient } from "../workspace";
+import { isSeedPatientNote, newId, type Message, type Patient } from "../workspace";
 import type { ReviewItem } from "../workflow";
 import { emptyCase, type AadiAnalysis } from "./contract";
 import { aadiMessage } from "./presentation";
@@ -68,7 +68,7 @@ export function composerCase(prompt: string, context: string, patient?: Pick<Pat
   if (/^\d{1,3}(?:\.\d+)?$/.test(age) && Number(age) <= 130) data.demographics.ageYears = Number(age);
   const sex = patient?.sex.trim().toLowerCase();
   data.demographics.sex = sex === "male" || sex === "m" ? "M" : sex === "female" || sex === "f" ? "F" : "unknown";
-  const history = [context.trim() && `Konteks Encounter\n${context}`, patient?.notes.trim() && `Catatan kasus\n${patient.notes}`].filter(Boolean).join("\n\n");
+  const history = [context.trim() && `Konteks Encounter\n${context}`, patient?.notes.trim() && !isSeedPatientNote(patient.notes) && `Catatan kasus\n${patient.notes}`].filter(Boolean).join("\n\n");
   if (history) data.anamnesis.freeText = history;
   // A value in the strip wins over the saved patient; an unreadable one is not sent.
   if (fields) {

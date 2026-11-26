@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { initialWorkspace, loadWorkspace, newEncounter, parseWorkspace, workspaceReducer } from "../src/lib/workspace";
+import { emptyWorkspace, initialWorkspace, loadWorkspace, newEncounter, parseWorkspace, workspaceReducer } from "../src/lib/workspace";
 import { createDraft, draftLanguages, draftModels, modes } from "../src/lib/drafts";
 import { greeting } from "../src/lib/ui-labels";
 
@@ -81,16 +81,16 @@ describe("storage validation", () => {
     expect(loadWorkspace(JSON.stringify(saved)).workspace.settings.language).toBe("English");
   });
   it("recovers from malformed JSON and rejects malformed nested records", () => {
-    expect(loadWorkspace("{broken").workspace).toEqual(initialWorkspace);
-    expect(loadWorkspace(JSON.stringify({ ...initialWorkspace, encounters: [{ id: "x", messages: null }] })).workspace).toEqual(initialWorkspace);
-    expect(loadWorkspace(JSON.stringify({ ...initialWorkspace, settings: { model: "unknown" } })).workspace).toEqual(initialWorkspace);
+    expect(loadWorkspace("{broken").workspace).toEqual(emptyWorkspace);
+    expect(loadWorkspace(JSON.stringify({ ...initialWorkspace, encounters: [{ id: "x", messages: null }] })).workspace).toEqual(emptyWorkspace);
+    expect(loadWorkspace(JSON.stringify({ ...initialWorkspace, settings: { model: "unknown" } })).workspace).toEqual(emptyWorkspace);
   });
   it("keeps saved text it cannot read so the caller can back it up instead of losing it", () => {
-    expect(loadWorkspace(null)).toEqual({ workspace: initialWorkspace, unreadable: null });
+    expect(loadWorkspace(null)).toEqual({ workspace: emptyWorkspace, unreadable: null });
     const saved = JSON.stringify({ ...initialWorkspace, settings: { ...initialWorkspace.settings, language: "English" } });
     expect(loadWorkspace(saved)).toEqual({ workspace: parseWorkspace(saved), unreadable: null });
     const future = JSON.stringify({ ...initialWorkspace, version: 2 });
-    for (const raw of ["{broken", future]) expect(loadWorkspace(raw)).toEqual({ workspace: initialWorkspace, unreadable: raw });
+    for (const raw of ["{broken", future]) expect(loadWorkspace(raw)).toEqual({ workspace: emptyWorkspace, unreadable: raw });
   });
   it("round-trips a complete workspace", () => {
     expect(loadWorkspace(JSON.stringify(initialWorkspace)).workspace).toEqual(initialWorkspace);
@@ -147,5 +147,17 @@ describe("agent settings fields (2026-11-04)", () => {
     const text = createDraft({ mode: "clinic", prompt: "Kunjungan fiktif.", context: "", specialty: "Primary Care", model: "Standard", language: "Bahasa Indonesia", instructions: "Kalimat ringkas.", modeInstructions: { clinic: "Sebut rencana kontrol.", ddx: "Lain." } });
     expect(text).toContain("## Preferensi penulisan\nKalimat ringkas.\nSebut rencana kontrol.");
     expect(text).not.toContain("Lain.");
+  });
+});
+
+describe("first visit", () => {
+  it("a first visit starts with no demo patient or encounter", () => {
+    const { workspace } = loadWorkspace(null);
+    expect(workspace.patients).toEqual([]);
+    expect(workspace.encounters).toEqual([]);
+    expect(workspace.activeEncounterId).toBeNull();
+  });
+  it("unreadable saved text also starts empty and keeps the text", () => {
+    expect(loadWorkspace("bukan workspace")).toEqual({ workspace: emptyWorkspace, unreadable: "bukan workspace" });
   });
 });

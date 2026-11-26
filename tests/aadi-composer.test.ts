@@ -3,6 +3,7 @@ import { composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, 
 import { emptyCase, type AadiAnalysis } from "../src/lib/aadi/contract";
 import { validCase } from "../src/lib/aadi/contract";
 import { hasAadiSource } from "../src/lib/aadi/presentation";
+import { initialWorkspace } from "../src/lib/workspace";
 
 describe("main clinical composer", () => {
   it("labels only structured AADI source snapshots as AADI drafts", () => {
@@ -80,5 +81,13 @@ describe("composer case strip", () => {
     expect(invalidCaseField("spo2", "40")).toBe(true);
     expect(invalidCaseField("temperature", "37,2")).toBe(false);
     expect(invalidCaseField("age", "")).toBe(false);
+  });
+});
+
+describe("demo patient note", () => {
+  it("drops the seed note of a saved demo patient", () => {
+    const demo = initialWorkspace.patients[0];
+    expect(composerCase("demam 3 hari", "", demo).anamnesis.freeText).toBeUndefined();
+    expect(composerCase("demam 3 hari", "", { ...demo, notes: "Alergi amoksisilin" }).anamnesis.freeText).toBe("Catatan kasus\nAlergi amoksisilin");
   });
 });

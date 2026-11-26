@@ -1,7 +1,7 @@
 // Workspace logic moved out of components/workspace.tsx (tech-debt row 37) so it can be tested without a browser.
 import type { ModeId } from "./drafts";
 import { freshReview, type PersonalTemplate, type ReviewItem } from "./workflow";
-import { initialWorkspace, loadWorkspace, newId, parseWorkspace, storageKey, unreadableKey, type Message, type Patient, type Settings, type Workspace } from "./workspace";
+import { emptyWorkspace, loadWorkspace, newId, parseWorkspace, storageKey, unreadableKey, type Message, type Patient, type Settings, type Workspace } from "./workspace";
 import { openWorkspace, type WorkspaceLock } from "./workspace-crypto";
 import type { WorkspaceStorageKeys } from "./workspace-storage";
 
@@ -42,7 +42,7 @@ export async function restoreEncrypted(storage: Pick<Storage, "getItem" | "setIt
   const workspace = parseWorkspace(plaintext);
   if (workspace) return { workspace, lock, unreadable: storage.getItem(keys.unreadableKey), notice: null };
   try { storage.setItem(keys.unreadableKey, raw); } catch { /* no room for a second copy: the ciphertext stays in place */ }
-  return { workspace: initialWorkspace, lock, unreadable: raw, notice: "Workspace terenkripsi tidak dapat dibaca. Datanya disimpan sebagai cadangan terenkripsi dan dapat diunduh dari menu Workspace." };
+  return { workspace: emptyWorkspace, lock, unreadable: raw, notice: "Workspace terenkripsi tidak dapat dibaca. Datanya disimpan sebagai cadangan terenkripsi dan dapat diunduh dari menu Workspace." };
 }
 
 /** The user's text and its local draft, with the source the draft was made from; `fallback` records why the draft stood in for a failed analysis. */
