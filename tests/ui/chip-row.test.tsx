@@ -87,6 +87,18 @@ describe("chip row", () => {
     expect(screen.getByRole("button", { name: "Catatan Klinis (SOAP)" }).getAttribute("aria-pressed")).toBe("false");
   });
 
+  it("Format keluaran shows only for template modes, where it changes the draft", () => {
+    const { rerender } = render(<Composer {...composerProps({ mode: "question", aadiEnabled: true })}/>);
+    expect(screen.queryByLabelText("Format keluaran")).toBeNull();
+    rerender(<Composer {...composerProps({ mode: "clinic", aadiEnabled: false })}/>);
+    expect(screen.getByLabelText("Format keluaran")).toBeTruthy();
+  });
+
+  it("sending is the one primary action; Mulai Scribe is secondary", () => {
+    render(<Composer {...composerProps({ prompt: "demam 3 hari" })}/>);
+    expect(screen.getByRole("button", { name: /Mulai Scribe/ }).classList.contains("primary")).toBe(false);
+  });
+
   it("the slash picker names each mode's kind", () => {
     render(<Composer {...composerProps({ prompt: "/" })}/>);
     const picker = within(screen.getByRole("listbox", { name: "Pilih templat" }));
