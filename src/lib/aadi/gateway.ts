@@ -232,7 +232,10 @@ export function createAadiGateway(options: Options = {}) {
             if (controller.signal.aborted) throw error;
             if (error instanceof ServiceFailure && error.code === "RATE_LIMITED") return rateLimited(error.retryAfter);
             therapyGrounding = undefined;
-            evidenceGate = absent("Referensi atau langkah terapi Oracle tidak tersedia; terapi dan dosis tidak ditampilkan.");
+            // No passage cleared the relevance floor: say so, rather than suggesting the service failed.
+            evidenceGate = absent(error instanceof TheOracleGroundingError && error.code === "THEORACLE_NO_MATCH"
+              ? "Oracle tidak menemukan referensi terapi yang cukup relevan untuk diagnosis ini; terapi dan dosis tidak ditampilkan."
+              : "Referensi atau langkah terapi Oracle tidak tersedia; terapi dan dosis tidak ditampilkan.");
           } finally { stage.abort(); }
         }
         if (final.therapy) {

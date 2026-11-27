@@ -21,6 +21,12 @@ const THERAPY_EVIDENCE = 1;
 const THERAPY_QUERY = "\npenatalaksanaan terapi dosis obat";
 // A drug amount such as 500 mg or 1 g, not a laboratory value such as 126 mg/dL.
 const DOSE = /\d+(?:[.,]\d+)?\s?(?:mg|mcg|g|iu)\b(?!\s*\/\s*(?:dl|l)\b)/i;
+// Relevance floor: a passage whose cosine similarity to the query is below this is not evidence for the case, so it is
+// never sent to the model. When no passage of the case search clears it, retrieval answers THEORACLE_NO_MATCH and no
+// analysis runs. Set to 0.35 by Gaffer on 2026-11-26 from `npm run benchmark:oracle` on the real index: weakest on-topic
+// best passage 0.3725 (88 eval queries), strongest off-topic 0.2597 (8 queries); 0.40 rejected two on-topic queries.
+// The on-topic margin is small (about 0.02): re-run the benchmark's relevanceFloor section after every index rebuild.
+export const THEORACLE_MIN_SIMILARITY = 0.35;
 const REVIEW_PROVENANCE = "Derived from official guidelines (KMK 1186/2022, Permenkes 5/2014, PNPK); clinically reviewed by Gaffer on 2026-10-23. Review status per entry is recorded in the knowledge SSOT (status.review_klinis).";
 
 export interface TheOracleManifest {
@@ -34,7 +40,7 @@ export interface TheOracleManifest {
 interface Chunk { id: string; title: string; docSource: string; origin: string; text: string; textSha256: string }
 type Embed = (text: string) => Promise<Float32Array>;
 interface LoadedIndex { manifest: TheOracleManifest; chunks: Chunk[]; vectors: Float32Array; embed: Embed }
-interface RetrieveOptions { indexDir?: string; modelDir?: string; limit?: number; now?: () => Date; embedder?: (manifest: TheOracleManifest, modelDir: string) => Promise<Embed> }
+interface RetrieveOptions { indexDir?: string; modelDir?: string; limit?: number; minSimilarity?: number; now?: () => Date; embedder?: (manifest: TheOracleManifest, modelDir: string) => Promise<Embed> }
 
 const loaded = new Map<string, Promise<LoadedIndex>>();
 const sha256 = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
@@ -157,6 +163,9 @@ async function rankChunks({ manifest, chunks, vectors, embed }: LoadedIndex, tex
   return { ranked: [...scores.keys()].sort((a, b) => scores[b] - scores[a]), scores };
 }
 
+// The floor in force for one call; an invalid option falls back to the default rather than switching the floor off.
+const floorFor = (options: RetrieveOptions) => typeof options.minSimilarity === "number" && Number.isFinite(options.minSimilarity) ? options.minSimilarity : THEORACLE_MIN_SIMILARITY;
+
 const evidenceItem = (chunk: Chunk, score: number): Omit<TheOracleGroundingEvidence, "retrievalRank"> => ({ evidenceId: chunk.id, text: evidenceText(chunk.text), similarity: Math.round(score * 10_000) / 10_000, source: { title: chunk.title, docSource: chunk.docSource, origin: chunk.origin, textSha256: chunk.textSha256 } });
 
 export async function retrieveTheOracleGrounding(caseData: CaseState, options: RetrieveOptions = {}): Promise<TheOracleGroundingBundle> {
@@ -166,11 +175,13 @@ export async function retrieveTheOracleGrounding(caseData: CaseState, options: R
   const index = await indexFor(options);
   const { manifest, chunks } = index;
   const dims = manifest.model.dims;
+  const floor = floorFor(options);
   const { ranked, scores } = await rankChunks(index, query);
   const selected: Omit<TheOracleGroundingEvidence, "retrievalRank">[] = [];
   const perDocument = new Map<string, number>();
+  // Ranked best first, so the first passage under the floor ends the search.
   for (const i of ranked) {
-    if (selected.length >= limit) break;
+    if (selected.length >= limit || scores[i] < floor) break;
     const chunk = chunks[i];
     if ((perDocument.get(chunk.title) ?? 0) >= MAX_PER_DOCUMENT) continue;
     const item = evidenceItem(chunk, scores[i]);
@@ -178,14 +189,14 @@ export async function retrieveTheOracleGrounding(caseData: CaseState, options: R
     perDocument.set(chunk.title, (perDocument.get(chunk.title) ?? 0) + 1);
     selected.push(item);
   }
-  if (!selected.length) throw new TheOracleGroundingError("THEORACLE_NO_MATCH", "Oracle tidak menemukan referensi untuk keluhan ini. Analisis tidak dijalankan.");
+  if (!selected.length) throw new TheOracleGroundingError("THEORACLE_NO_MATCH", "Oracle tidak menemukan referensi yang cukup relevan untuk keluhan ini. Analisis tidak dijalankan.");
   // A complaint matches symptom passages; doses sit in treatment passages, often of another guideline (PPK, Fornas).
   // Search the whole corpus again for treatment and add the best passage that states a dose, in place of the lowest match.
   const therapy: typeof selected = [];
   if (limit > 1) {
     const { ranked: therapyRanked, scores: therapyScores } = await rankChunks(index, query + THERAPY_QUERY);
     for (const i of therapyRanked) {
-      if (therapy.length >= THERAPY_EVIDENCE) break;
+      if (therapy.length >= THERAPY_EVIDENCE || therapyScores[i] < floor) break;
       const chunk = chunks[i];
       if (!DOSE.test(chunk.text) || selected.some(item => item.evidenceId === chunk.id)) continue;
       const item = evidenceItem(chunk, therapyScores[i]);
@@ -238,12 +249,13 @@ export async function retrieveTheOracleTherapyGrounding(caseData: CaseState, dia
   const query = therapyQuery(caseData, diagnosis);
   const index = await indexFor(options);
   const { manifest, chunks } = index;
+  const floor = floorFor(options);
   const { ranked, scores } = await rankChunks(index, query);
   const selected: Omit<TheOracleGroundingEvidence, "retrievalRank">[] = [];
   const perDocument = new Map<string, number>();
   for (const wantDose of [true, false]) {
     for (const i of ranked) {
-      if (selected.length >= (wantDose ? THERAPY_DOSE_EVIDENCE : MAX_EVIDENCE)) break;
+      if (selected.length >= (wantDose ? THERAPY_DOSE_EVIDENCE : MAX_EVIDENCE) || scores[i] < floor) break;
       const chunk = chunks[i];
       if (DOSE.test(chunk.text) !== wantDose || (perDocument.get(chunk.title) ?? 0) >= MAX_PER_DOCUMENT) continue;
       const item = evidenceItem(chunk, scores[i]);
@@ -252,7 +264,7 @@ export async function retrieveTheOracleTherapyGrounding(caseData: CaseState, dia
       selected.push(item);
     }
   }
-  if (!selected.length) throw new TheOracleGroundingError("THEORACLE_NO_MATCH", "Oracle tidak menemukan referensi terapi untuk diagnosis ini.");
+  if (!selected.length) throw new TheOracleGroundingError("THEORACLE_NO_MATCH", "Oracle tidak menemukan referensi terapi yang cukup relevan untuk diagnosis ini.");
   return freezeBundle({
     version: THEORACLE_GROUNDING_CAPABILITY,
     corpus: { name: "TheOracle", indexSha256: manifest.indexSha256, embeddingModel: { id: manifest.model.id, revision: manifest.model.revision, dtype: manifest.model.dtype, dims: manifest.model.dims }, retrievedAt: (options.now ?? (() => new Date()))().toISOString(), reviewProvenance: REVIEW_PROVENANCE },

@@ -25,7 +25,7 @@ import { diagnosisContent, aadiMessage, pcareCopies } from "../lib/aadi/presenta
 import { paneDocuments } from "../lib/document-pane";
 import type { AadiAnalysis } from "../lib/aadi/contract";
 import { caseMismatch, composerCase, composerUsesAadi, composerAadiMessages, emptyCaseFields, knownCaseFields, readCaseFields, type CaseFields } from "../lib/aadi/composer";
-import { requestAadiAnalysis } from "../lib/aadi/client";
+import { AadiRequestError, requestAadiAnalysis } from "../lib/aadi/client";
 import type { StageEvent } from "../lib/aadi/stage-stream";
 import { smooth } from "./smooth";
 import { useMediaQuery, useToast, useWorkspacePersistence } from "./workspace-hooks";
@@ -70,6 +70,8 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   const [caseFields, setCaseFields] = useState<CaseFields>(emptyCaseFields);
   const resetCaseFields = useCallback(() => setCaseFields(emptyCaseFields()), []);
   const [analysisError, setAnalysisError] = useState("");
+  // TheOracle found no passage relevant enough to the case: shown as "no evidence", not as a service failure.
+  const [analysisNoMatch, setAnalysisNoMatch] = useState(false);
   // A case whose age or sex differs from the open encounter waits here until the doctor picks where it goes (P0 #3).
   // It belongs to the encounter it was held in; opening another encounter voids it (the text stays in the composer).
   const [held, setHeld] = useState<{ encounterId: string; text: string; mode: ModeId; useTemplate: boolean; local: boolean; fallback?: string } | null>(null);
@@ -145,7 +147,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   // never automatic; the draft's source records why AADI did not answer.
   function fallbackDraft() {
     if (!prompt.trim() || busy) return;
-    const reason = analysisError; setAnalysisError("");
+    const reason = analysisError; setAnalysisError(""); setAnalysisNoMatch(false);
     generate(prompt, "clinic", false, true, reason, { confirmed: true, fresh: failedIntoNew.current });
     // Like an answered analysis, the next case starts with an empty strip.
     resetCaseFields();
@@ -154,7 +156,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
   async function analyzeMain(text: string, selectedMode: ModeId, current: Encounter, isNew: boolean, casePatient?: Patient) {
     if (analysisController.current) return;
     const controller = new AbortController(); analysisController.current = controller;
-    setBusy(true); setAnalysisError(""); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setStages([]); setPrompt("");
+    setBusy(true); setAnalysisError(""); setAnalysisNoMatch(false); pendingText.current = text.trim(); setPendingQuestion(text.trim()); setStages([]); setPrompt("");
     // The home composer gives way to the chat composer; keep typing where the reader is.
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".chat-composer textarea")?.focus());
     const finish = () => { if (analysisController.current === controller) { analysisController.current = null; setBusy(false); setPendingQuestion(null); setQueuePosition(null); setStages([]); pendingText.current = null; } };
@@ -174,7 +176,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
         finish();
       }, "arrive");
     } catch (error) {
-      if (!controller.signal.aborted) { failedIntoNew.current = isNew; setAnalysisError(error instanceof Error ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia."); setPrompt(text); }
+      if (!controller.signal.aborted) { failedIntoNew.current = isNew; setAnalysisError(error instanceof Error ? error.message : "Analisis belum tersedia. Keluhan tetap tersedia."); setAnalysisNoMatch(error instanceof AadiRequestError && error.code === "THEORACLE_NO_MATCH"); setPrompt(text); }
     } finally {
       if (!arriving) finish();
     }
@@ -223,7 +225,7 @@ function WorkspaceState({ principalId, onSignOut, userButton }: { principalId: s
     onMakeTasks: (text: string) => { const typed = prompt; generate(text, "tasks", false); setPrompt(typed); },
   };
   const paneFor = (onClose: () => void) => encounter && <DocumentPane encounter={encounter} activeId={pane.activeId} onActive={(activeId) => setPane({ activeId })} overview={<EncounterOverview state={state} encounter={encounter} patient={patient} {...overviewActions}/>} tools={paneTools} onClose={onClose} dispatch={dispatch} onToast={notify} drafts={drafts} onDraft={setDraft}/>;
-  const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft,
+  const composerProps: ComponentProps<typeof Composer> = { prompt, onPrompt: updatePrompt, mode, onMode: changeMode, settings: state.settings, onModel: (model) => dispatch({ type: "settings.save", settings: { ...state.settings, model } }), context, onContext: () => openDialog("context"), onScribe: () => openDialog("scribe"), encounter, patientName: patient?.name, templates: state.templates ?? [], favorites: state.favorites ?? [], templateKey, onTemplate: chooseTemplate, onSubmit: () => generate(), busy, aadiEnabled: composerUsesAadi(mode, !!selectedTemplate), analysisError, analysisNoMatch, onCancelAnalysis: cancelAnalysis, onFallback: fallbackDraft,
     mismatch: heldHere && { onNew: () => generate(heldHere.text, heldHere.mode, heldHere.useTemplate, heldHere.local, heldHere.fallback, { confirmed: true, fresh: true }), onKeep: () => generate(heldHere.text, heldHere.mode, heldHere.useTemplate, heldHere.local, heldHere.fallback, { confirmed: true }) } };
 
   if (restoring) return <main className="system-loading" aria-busy="true"><PixelLoader label="Sedang membuka workspace…"/><p>Membuka workspace…</p></main>;

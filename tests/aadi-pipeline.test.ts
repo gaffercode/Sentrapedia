@@ -12,6 +12,7 @@ const bundle = (text: string): TheOracleGroundingBundle => ({ version: THEORACLE
 const diagnosisResult = (likely: { icd10: string; label: string; confidenceTier: string }[]) => ({ contractVersion: "1", status: "ok", differential: { likely, alternatives: [], cannotMiss: [] }, evidence: [], missingInformation: [], nextBestActions: [], disposition: null, unfilled: [], meta });
 const pneumonia = { icd10: "J18.9", label: "Pneumonia", confidenceTier: "low" };
 const UNAVAILABLE = "Referensi atau langkah terapi Oracle tidak tersedia; terapi dan dosis tidak ditampilkan.";
+const NO_THERAPY_MATCH = "Oracle tidak menemukan referensi terapi yang cukup relevan untuk diagnosis ini; terapi dan dosis tidak ditampilkan.";
 const absent = (reason = UNAVAILABLE, forDiagnosis = { icd10: "J18.9", label: "Pneumonia" }) => ({ forDiagnosis, therapyRemoved: true, reason, drugs: [] });
 const therapy = { forDiagnosis: { icd10: "J18.9", label: "Pneumonia" }, regimen: [{ drug: "Amoxicillin", dose: "3x500mg", route: "PO", duration: "5 hari", note: "" }, { drug: "Levofloxacin", dose: "1x750mg", route: "PO", duration: "5 hari", note: "" }], interactions: [], contraindications: [] };
 
@@ -69,7 +70,8 @@ describe("targeted therapy pipeline", () => {
     expect(posts.map(p => p.path)).toEqual(["/v1/diagnosis/step"]);
     expect(body.result.therapy).toBeUndefined();
     expect(body.result.differential.likely[0].icd10).toBe("J18.9");
-    expect(body.evidenceGate).toEqual(absent());
+    // No relevant therapy passage is reported as such, not as an outage.
+    expect(body.evidenceGate).toEqual(absent(NO_THERAPY_MATCH));
     expect(logs.find(l => l.stage === "retrieve_tx")).toMatchObject({ ok: false, code: "THEORACLE_NO_MATCH" });
   });
   it("skips therapy when the diagnosis step has no likely diagnosis", async () => {

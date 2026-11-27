@@ -360,6 +360,8 @@ label.button:has(input:focus-visible) { outline: 2px solid var(--workspace-focus
 .notice { background: var(--workspace-accent-soft); color: var(--workspace-accent-ink); display: flex; align-items: flex-start; gap: 9px; border-radius: var(--radius); padding: 12px; font-size: var(--text-xs); line-height: 1.65; margin-bottom: 22px; }
 .notice svg { margin-top: 2px; flex-shrink: 0; }
 .form-warning { padding: 12px; border-radius: var(--radius); background: var(--workspace-error-bg); color: var(--workspace-error-text); font-size: var(--text-sm); line-height: var(--leading-relaxed); margin: 12px 0; }
+.no-evidence strong { display: block; }
+.no-evidence p { margin: 4px 0 0; }
 .danger-ghost, .text-danger { color: var(--workspace-error-text); }
 .text-danger { padding: 0; text-decoration: underline; }
 .danger { color: var(--workspace-white); background: var(--workspace-error-text); border-color: var(--workspace-error-text); }

@@ -81,6 +81,9 @@ it.runIf(required && !modelReady)("has the pinned embedding model that SENTRAPED
 
 describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the pinned model", () => {
   let indexDir = "";
+  // The production floor is calibrated on the real index, which scores higher than this short-passage corpus; with it on,
+  // genuine eval cases would answer no-match. The eval measures retrieval with the floor off.
+  const FLOOR_OFF = -1;
   const report: Record<string, unknown> = { measuredAt: new Date().toISOString(), node: process.version, model: { id: profile.id, revision: profile.revision } };
   const rate = (hits: number, total: number) => Math.round(hits / total * 1000) / 1000;
 
@@ -106,7 +109,7 @@ describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the 
     const manifest = JSON.parse(readFileSync(path.join(indexDir, "manifest.json"), "utf8")) as TheOracleManifest;
     expect(manifest.model).toMatchObject({ id: profile.id, revision: profile.revision, dtype: profile.dtype, dims: profile.dims });
     expect(manifest.chunks.count).toBe(passages.length);
-    const bundle = await retrieveTheOracleGrounding(caseFor(cases.retrieval[0]), { indexDir });
+    const bundle = await retrieveTheOracleGrounding(caseFor(cases.retrieval[0]), { indexDir, minSimilarity: FLOOR_OFF });
     expect(validTheOracleGrounding(bundle)).toBe(true);
     expect(bundle.corpus.indexSha256).toBe(manifest.indexSha256);
   }, 300_000);
@@ -115,7 +118,7 @@ describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the 
     const rows: { id: string; category: string; rank: number; top: string; topSimilarity: number; ms: number }[] = [];
     for (const item of cases.retrieval) {
       const started = performance.now();
-      const bundle = await retrieveTheOracleGrounding(caseFor(item), { indexDir });
+      const bundle = await retrieveTheOracleGrounding(caseFor(item), { indexDir, minSimilarity: FLOOR_OFF });
       const rank = bundle.evidence.findIndex(e => e.source.title === item.gold) + 1;
       rows.push({ id: item.id, category: item.category, rank, top: bundle.evidence[0].source.title, topSimilarity: bundle.evidence[0].similarity, ms: Math.round(performance.now() - started) });
     }
@@ -134,7 +137,7 @@ describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the 
   it("brings the diagnosis's dose passage into the therapy step's evidence", async () => {
     const rows: { id: string; hit: boolean; rank: number }[] = [];
     for (const item of cases.therapy) {
-      const bundle = await retrieveTheOracleTherapyGrounding(emptyCase(), item.diagnosis, { indexDir });
+      const bundle = await retrieveTheOracleTherapyGrounding(emptyCase(), item.diagnosis, { indexDir, minSimilarity: FLOOR_OFF });
       rows.push({ id: item.id, hit: bundle.evidence.some(e => e.evidenceId === item.dosePassage), rank: bundle.evidence.findIndex(e => e.evidenceId === item.dosePassage) + 1 });
     }
     const doseRecall = rate(rows.filter(r => r.hit).length, rows.length);
@@ -145,7 +148,7 @@ describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the 
 
   it("never returns a passage that trips the AADI privacy guard, however close it is to the query", async () => {
     for (const query of cases.privacy.queries) {
-      const ids = [...(await retrieveTheOracleGrounding(caseFor({ query }), { indexDir })).evidence, ...(await retrieveTheOracleTherapyGrounding(caseFor({ query }), { icd10: "J18.9", label: "Pneumonia komunitas" }, { indexDir })).evidence].map(e => e.evidenceId);
+      const ids = [...(await retrieveTheOracleGrounding(caseFor({ query }), { indexDir, minSimilarity: FLOOR_OFF })).evidence, ...(await retrieveTheOracleTherapyGrounding(caseFor({ query }), { icd10: "J18.9", label: "Pneumonia komunitas" }, { indexDir, minSimilarity: FLOOR_OFF })).evidence].map(e => e.evidenceId);
       expect(ids).not.toContain(cases.privacy.trap);
     }
   }, 300_000);
@@ -153,18 +156,19 @@ describe.runIf(modelReady)("TheOracle retrieval on the synthetic index with the 
   // The cases whose outcome does not depend on which other passages come back; known gaps are left to layer 1.
   const endToEnd = gateCases.filter(item => !item.retrievalDependent && !item.knownGap);
   for (const item of endToEnd) it(`gates ${item.id} against the evidence retrieval actually returned: ${item.about}`, async () => {
-    const dx = await retrieveTheOracleGrounding(caseFor(item), { indexDir });
-    const tx = await retrieveTheOracleTherapyGrounding(caseFor(item), item.diagnosis, { indexDir });
+    const dx = await retrieveTheOracleGrounding(caseFor(item), { indexDir, minSimilarity: FLOOR_OFF });
+    const tx = await retrieveTheOracleTherapyGrounding(caseFor(item), item.diagnosis, { indexDir, minSimilarity: FLOOR_OFF });
     checkGate(item, gateEvidence(tx, dx)!, false);
   }, 300_000);
 
-  // No similarity floor exists yet (known gap): an off-topic query still gets six passages. Recorded so a floor can be
-  // chosen from data; not asserted.
-  it("records how similar off-topic queries score, for choosing a similarity floor", async () => {
+  // The floor itself is not asserted here (see FLOOR_OFF); that on-topic and off-topic queries separate on this corpus is.
+  it("scores every on-topic case above every off-topic query, and records both for the floor", async () => {
     const offTopic: { query: string; topSimilarity: number }[] = [];
-    for (const query of cases.outOfDomain) offTopic.push({ query, topSimilarity: (await retrieveTheOracleGrounding(caseFor({ query }), { indexDir })).evidence[0].similarity });
+    for (const query of cases.outOfDomain) offTopic.push({ query, topSimilarity: (await retrieveTheOracleGrounding(caseFor({ query }), { indexDir, minSimilarity: FLOOR_OFF })).evidence[0].similarity });
     const rows = (report.retrieval as { rows: { rank: number; topSimilarity: number }[] } | undefined)?.rows ?? [];
     report.summary = { ...(report.summary as object), offTopicMaxSimilarity: Math.max(...offTopic.map(r => r.topSimilarity)), onTopicMinTopSimilarity: rows.length ? Math.min(...rows.map(r => r.topSimilarity)) : null };
     report.outOfDomain = offTopic;
+    // The retrieval rows come from the recall test above; run alone, this test only records.
+    if (rows.length) expect(Math.min(...rows.map(r => r.topSimilarity))).toBeGreaterThan(Math.max(...offTopic.map(r => r.topSimilarity)));
   }, 300_000);
 });
